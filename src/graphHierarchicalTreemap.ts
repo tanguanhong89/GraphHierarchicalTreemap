@@ -2,7 +2,7 @@ import { Coloring, ConnectivityGraphs, DepthPadding, HierarchicalNode, Links, Ro
 import * as d3 from 'd3'
 import { CalculateConnectivity, DebugDrawConnectivity, DrawLinks } from './connectivity';
 
-export function drawLinkedHierarchicalTreemap(hierarchicalNodes: HierarchicalNode, links: number, max: number) {
+export function drawGraphHierarchicalTreemap(hierarchicalNodes: HierarchicalNode, links: number, max: number) {
 
 }
 
