@@ -25,5 +25,9 @@
       "noUnusedParameters": true,
 
       "outFile": "./out/bundle.js"
-  }
+  },
+ 
+  "exclude": [
+    "./tests"
+  ]
 }
