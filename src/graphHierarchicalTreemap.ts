@@ -2,10 +2,6 @@ import { Coloring, ConnectivityGraphs, DepthPadding, HierarchicalNode, Links, Ro
 import * as d3 from 'd3'
 import { CalculateConnectivity, DebugDrawConnectivity, DrawLinks } from './connectivity';
 
-export function drawGraphHierarchicalTreemap(hierarchicalNodes: HierarchicalNode, links: number, max: number) {
-
-}
-
 function drawTreemap(d1: any, routes: Array<string>) {
     let ifBreak = false
     let depth = routes.length
@@ -13,8 +9,6 @@ function drawTreemap(d1: any, routes: Array<string>) {
     let oid = "#" + d1["name"];
     oid = oid.replace(/\./g, '\\.')
     let o = $(oid)[0];
-
-
 
     let width = +(o.style.width.replace("px", ""))
     let height = +(o.style.height.replace("px", ""));
@@ -55,7 +49,7 @@ function drawTreemap(d1: any, routes: Array<string>) {
                 let color = d3.scaleSequential([Settings.maxDepth, 0], d3.interpolateBlues);
                 if (routes.length == 0) color = Coloring.Rect[d.data.n](d.data.d)
                 else if (routes[0] in Coloring.Rect) color = Coloring.Rect[d.data.n](d.data.d)
-               
+
                 g.append("rect")
                     .attr("id", d.data.n)
                     .style("fill", color)

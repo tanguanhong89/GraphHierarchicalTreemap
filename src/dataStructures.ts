@@ -1,5 +1,3 @@
-import * as d3 from 'd3'
-
 let Settings = {
     drawDebugLines: false,
     minPxSize: 10,
@@ -10,7 +8,7 @@ let Settings = {
 }
 
 let Coloring = {
-    Line: d3.scaleSequential([Settings.maxDepth, 0], d3.interpolateSinebow),
+    Line: undefined,
     Rect: undefined // default defined by createHierarchicalTreemap 
 }
 
@@ -59,11 +57,11 @@ export class HierarchicalNode {
 
     find(routes: Array<string>): HierarchicalNode | undefined {
         if (routes.length == 1) {
-            if (routes[0] == this.name) return this
-        } else {
+            return this.children.get(routes[0])
+        } else if (routes.length > 1){
             let immediateChild = routes.shift()
             if (this.children.has(immediateChild))
-                this.children.get(immediateChild).find(routes.slice(1))
+                return this.children.get(immediateChild).find(routes)
         }
         return
     }
@@ -76,6 +74,7 @@ export class HierarchicalNode {
     createImmediateMapObject(): any {
         let t = this._createMapObject()
         this.children.forEach(c => t.children.push(c._createMapObject()))
+        return t
     }
 
     _createMapObject(): any {//for d3 rendering
@@ -93,7 +92,7 @@ let DepthPadding = new Map<number, number>()
 
 let ConnectivityGraphs = new Map<string, Map<string, Set<string>>>() //need to initialize with CalculateConnectivity first!
 
-let RootNode = new HierarchicalNode('a', 0)
+let RootNode = new HierarchicalNode('root', 0)
 
 let Links = new Map<string, Set<string>>()
 
