@@ -1,5 +1,4 @@
 let Settings = {
-    drawDebugLines: false,
     minPxSize: 10,
     maxDepth: 10,
     pixelCorrection: 8, //+- this value = snapped
@@ -15,7 +14,8 @@ let Coloring = {
 
 let RectPorts = new Map<string, Point[]>()// IO ports of each rect
 
-let DrawnLines = new Map<string, Set<string>>()
+let DrawnLines = new Map<string, Set<string>>() //individual lines
+let DrawnLinks = new Map<string, Set<string>>() //src->dsts
 
 export class Point {
     x: number
@@ -55,13 +55,18 @@ export class HierarchicalNode {
         this.children.set(child.name, child)
     }
 
+    addGrandchild(routes: Array<string>, child: HierarchicalNode) {
+        this.find(routes).addChild(child)
+    }
+
     find(routes: Array<string>): HierarchicalNode | undefined {
-        if (routes.length == 1) {
+        if (routes.length == 0) return this
+        else if (routes.length == 1) {
             return this.children.get(routes[0])
-        } else if (routes.length > 1){
-            let immediateChild = routes.shift()
+        } else if (routes.length > 1) {
+            let immediateChild = routes[0]
             if (this.children.has(immediateChild))
-                return this.children.get(immediateChild).find(routes)
+                return this.children.get(immediateChild).find(routes.slice(1))
         }
         return
     }
@@ -71,7 +76,7 @@ export class HierarchicalNode {
         if (node) node.drawn = true
     }
 
-    createImmediateMapObject(): any {
+    createImmediateObject(): any {
         let t = this._createMapObject()
         this.children.forEach(c => t.children.push(c._createMapObject()))
         return t
@@ -94,6 +99,5 @@ let ConnectivityGraphs = new Map<string, Map<string, Set<string>>>() //need to i
 
 let RootNode = new HierarchicalNode('root', 0)
 
-let Links = new Map<string, Set<string>>()
 
-export { Settings, RootNode, Links, RectPorts, DepthPadding, ConnectivityGraphs, DrawnLines, Coloring }
+export { Settings, RootNode, RectPorts, DepthPadding, ConnectivityGraphs, DrawnLines, DrawnLinks, Coloring }

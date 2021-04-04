@@ -35,11 +35,16 @@ describe("RootNode", function () {
     });
 
     it("should have correct map obj", () => {
-        let x = RootNode.find(['a']).createImmediateMapObject()
+        let x = RootNode.find(['a']).createImmediateObject()
         let k = Object.keys(x);
         expect(k.includes('children')).toBeTruthy();
         expect(x.children.length).toEqual(1);
         expect(x.children[0].children.length).toEqual(0);
+    });
+
+    it("should find aaaa", () => {
+        RootNode.addGrandchild(['a', 'aa', 'aaa'], new HierarchicalNode('aaaa', 0))
+        expect(RootNode.find(['a', 'aa', 'aaa','aaaa']).name).toBe('aaaa');
     });
 
 });
