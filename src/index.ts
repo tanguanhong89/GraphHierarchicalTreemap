@@ -73,7 +73,7 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
             if (!RootNode.find(r1).drawn) {
                 let g = d3.select("#root").append('g');
                 let pclass = "p" + (r1.length == 0 ? "graphhierarchicaltreemap" : r1.length == 1 ? "root" : r1.slice(0, -1).join('.'))
-                let depthClass = "depth" + (r1.length == 0 ? "-" : r1.slice(0, -1).length+1)
+                let depthClass = "depth" + (r1.length == 0 ? "-" : r1.slice(0, -1).length + 1)
                 g.attr("transform", `translate(${xoffset + d.x0},${yoffset + d.y0})`)
                     .attr("x", xoffset + d.x0) //does nothing, for easier ref
                     .attr("y", yoffset + d.y0) //does nothing, for easier ref
@@ -102,22 +102,23 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
     GHT.connectivityGraphs[preroutes.concat([d1.n]).join('.')] = graph;
     if (drawDebugLines) DebugDrawConnectivity(graph, padding)
 
-    //draw links whichever renders last
-    d1.children.forEach(x => {
-        let id = d1.n == 'root' ? x.n : preroutes.concat([d1.n]).concat([x.n]).join('.')
-        if (id in links) {
-            let dsts = links[id];
-            Object.keys(dsts).forEach(d => {
-                let v1 = RootNode.find(d.split('.'))
-                if (!v1) return
-                if (v1.drawn) {
-                    let direction = dsts[d]
-                    if (direction) DrawLinks(id, d)
-                    else DrawLinks(d, id)
-                }
-            })
-        }
-    })
+    //draw links whichever renders last    
+    if (!ifBreak)// ifBreak, rects are not rendered
+        d1.children.forEach(x => {
+            let id = d1.n == 'root' ? x.n : preroutes.concat([d1.n]).concat([x.n]).join('.')
+            if (id in links) {
+                let dsts = links[id];
+                Object.keys(dsts).forEach(d => {
+                    let v1 = RootNode.find(d.split('.'))
+                    if (!v1) return
+                    if (v1.drawn) {
+                        let direction = dsts[d]
+                        if (direction) DrawLinks(id, d)
+                        else DrawLinks(d, id)
+                    }
+                })
+            }
+        })
     return ifBreak
 }
 
@@ -131,7 +132,7 @@ function createDefaultColorScheme(node) {
 
     let colorMap = new Map<String, any>()
     node.c.forEach(c => {
-        let n = Math.round(Math.random() * (node.c.length - 1))
+        let n = Math.floor(Math.random() * node.c.length)
         colorMap.set(c.n, colorSchemeList[n])
     })
     return function (n: string) {
