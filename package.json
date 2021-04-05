@@ -4,6 +4,7 @@
     "description": "",
     "main": "index.js",
     "scripts": {
+        "build": "rm -rf ./out/bundle.*",
         "test": "jest"
     },
     "author": "",

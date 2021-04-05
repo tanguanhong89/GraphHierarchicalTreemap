@@ -1,21 +1,22 @@
-let Settings = {
+let GraphHierarchicalTreemap = {
     minPxSize: 10,
     maxDepth: 10,
     pixelCorrection: 8, //+- this value = snapped
     xPortCount: 1, // no point using beyond 1. Path search algo only uses first of each
     yPortCount: 1,
+
+    connectivityGraphs: new Map<string, Map<string, Set<string>>>(),
+    rectPorts: new Map<string, Point[]>(),// IO ports of each rect
+    drawnLines: new Map<string, Set<string>>(),
+    drawnLinks: new Map<string, Map<string,Array<string>>>(),//src -> dsts (each point xy)
+
+    depthPadding: new Map<number, number>(),
+
+    coloring: {
+        line: undefined,
+        rect: undefined
+    }
 }
-
-let Coloring = {
-    Line: undefined,
-    Rect: undefined // default defined by createHierarchicalTreemap 
-}
-
-
-let RectPorts = new Map<string, Point[]>()// IO ports of each rect
-
-let DrawnLines = new Map<string, Set<string>>() //individual lines
-let DrawnLinks = new Map<string, Set<string>>() //src->dsts
 
 export class Point {
     x: number
@@ -91,13 +92,12 @@ export class HierarchicalNode {
     }
 }
 
+export class HierarchicalLinks{
 
-
-let DepthPadding = new Map<number, number>()
-
-let ConnectivityGraphs = new Map<string, Map<string, Set<string>>>() //need to initialize with CalculateConnectivity first!
+}
 
 let RootNode = new HierarchicalNode('root', 0)
 
 
-export { Settings, RootNode, RectPorts, DepthPadding, ConnectivityGraphs, DrawnLines, DrawnLinks, Coloring }
+
+export { GraphHierarchicalTreemap, RootNode }

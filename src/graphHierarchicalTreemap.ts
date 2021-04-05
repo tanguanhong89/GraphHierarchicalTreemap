@@ -1,6 +1,35 @@
-import { Coloring, ConnectivityGraphs, HierarchicalNode, DepthPadding, RootNode, Settings, DrawnLinks } from './dataStructures'
+import { HierarchicalNode, RootNode, GraphHierarchicalTreemap as GHT } from './dataStructures'
 import * as d3 from 'd3'
 import { CalculateConnectivity, DebugDrawConnectivity, DrawLinks } from './connectivity';
+
+function drawGraphHierarchicalTreemap(node: any, links: any, rectColoring: any, lineColoring: any, drawDebugLines = false, preroutes: Array<string>) {
+    if (!preroutes && node.n == 'root') {
+        RootNode.name = node.n
+        RootNode.value = node.v
+        preroutes = []
+
+        if (!GHT.coloring.rect)
+            GHT.coloring.rect = rectColoring ? rectColoring : createDefaultColorScheme(node)
+        if (!GHT.coloring.line)
+            GHT.coloring.line = lineColoring ? lineColoring : d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateSinebow)
+
+
+        //needed bidirectional because of async rendering of rects, true means src->dst, false means dst->src
+        let biDirLinks = new Map<string, Map<string, boolean>>()
+        Object.keys(links).forEach(src => {
+            if (!(src in biDirLinks)) biDirLinks[src] = new Map<string, boolean>()
+            let dsts = links[src]
+            dsts.forEach(dst => {
+                if (!(dst in biDirLinks)) biDirLinks[dst] = new Map<string, boolean>()
+                biDirLinks[src][dst] = true
+                biDirLinks[dst][src] = false
+            })
+        })
+        links = biDirLinks
+    }
+    createHierarchicalTreemap(node, links, drawDebugLines, preroutes)
+}
+
 
 function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: boolean, preroutes: Array<string>) {
     let ifBreak = false
@@ -14,7 +43,7 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
     let width = +(o.style.width.replace("px", ""))
     let height = +(o.style.height.replace("px", ""));
     let padding = width / 30 + depth;
-    if (!(depth in DepthPadding)) DepthPadding[depth] = padding;
+    if (!(depth in GHT.depthPadding)) GHT.depthPadding[depth] = padding;
     d1.v = 0;
     let treemap = (d1) =>
         d3
@@ -38,18 +67,20 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
     let childrenLayer = dataGrp.get(1)
 
     function h1(d, r1, dep) {
-        if ((d.x1 - d.x0) < Settings.minPxSize || (d.y1 - d.y0) < Settings.minPxSize) {
+        if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) {
             ifBreak = true
         } else {
             if (!RootNode.find(r1).drawn) {
                 let g = d3.select("#root").append('g');
+                let pclass = "p" + (r1.length == 0 ? "graphhierarchicaltreemap" : r1.length == 1 ? "root" : r1.slice(0, -1).join('.'))
+                let depthClass = "depth" + (r1.length == 0 ? "-" : r1.slice(0, -1).length+1)
                 g.attr("transform", `translate(${xoffset + d.x0},${yoffset + d.y0})`)
                     .attr("x", xoffset + d.x0) //does nothing, for easier ref
                     .attr("y", yoffset + d.y0) //does nothing, for easier ref
-                    .attr("class", "p" + (r1.length == 0 ? "graphhierarchicaltreemap" : r1.length == 1 ? "root" : r1.slice(0, -1).join('.')))
+                    .attr("class", [pclass, depthClass].join(' '))
                     .attr("id", "g-" + r1.join('.'));
 
-                let color = Coloring.Rect(r1[0])(dep);
+                let color = GHT.coloring.rect(r1[0])(dep);
 
                 let rect = g.append("rect")
                     .attr("id", r1.join('.'))
@@ -68,16 +99,8 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
     childrenLayer.forEach(d => h1(d, currentRoute.concat([d.data.n]), d1.n == 'root' ? depth : depth + 1))
 
     let graph = CalculateConnectivity(currentRoute.length == 0 ? 'root' : currentRoute.join('.'), padding);
-    ConnectivityGraphs[preroutes.concat([d1.n]).join('.')] = graph;
+    GHT.connectivityGraphs[preroutes.concat([d1.n]).join('.')] = graph;
     if (drawDebugLines) DebugDrawConnectivity(graph, padding)
-
-    function h(a, b) {
-        if (!(a in DrawnLinks && DrawnLinks[a].has(b))) {
-            DrawLinks(a, b)
-            if (!(a in DrawnLinks)) DrawnLinks[a] = new Set<string>()
-            DrawnLinks[a].add(b)
-        }
-    }
 
     //draw links whichever renders last
     d1.children.forEach(x => {
@@ -89,11 +112,8 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
                 if (!v1) return
                 if (v1.drawn) {
                     let direction = dsts[d]
-                    if (direction) {
-                        h(id, d)
-                    } else {
-                        h(d, id)
-                    }
+                    if (direction) DrawLinks(id, d)
+                    else DrawLinks(d, id)
                 }
             })
         }
@@ -103,11 +123,10 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
 
 function createDefaultColorScheme(node) {
     let colorSchemeList = [
-        // d3.scaleSequential([Settings.maxDepth, 0], d3.interpolateCool),
-        // d3.scaleSequential([Settings.maxDepth, 0], d3.interpolateSinebow),
-        // d3.scaleSequential([Settings.maxDepth, 0], d3.interpolateWarm),
-        // d3.scaleSequential([Settings.maxDepth, 0], d3.interpolateRainbow),
-        d3.scaleSequential([Settings.maxDepth, 0], d3.interpolateBlues),
+        d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateCool),
+        d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateSinebow),
+        d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateWarm),
+        d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateRainbow),
     ]
 
     let colorMap = new Map<String, any>()
@@ -115,36 +134,13 @@ function createDefaultColorScheme(node) {
         let n = Math.round(Math.random() * (node.c.length - 1))
         colorMap.set(c.n, colorSchemeList[n])
     })
-    Coloring.Rect = function (n: string) {
-        return colorMap.get(n) ? colorMap.get(n) : d3.scaleSequential([Settings.maxDepth, 0], d3.interpolateBlues)
-    }
-
-    Coloring.Line = function (n: number) {
-        return d3.scaleSequential([Settings.maxDepth, 0], d3.interpolateSinebow)(n)
+    return function (n: string) {
+        return colorMap.get(n) ? colorMap.get(n) : d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateBlues)
     }
 }
 
+
 function createHierarchicalTreemap(node: any, links: any, drawDebugLines = false, preroutes: Array<string>) {
-    if (!preroutes && node.n == 'root') {
-        RootNode.name = node.n
-        RootNode.value = node.v
-        preroutes = []
-
-        if (!Coloring.Rect) createDefaultColorScheme(node)
-
-        //needed bidirectional because of async rendering of rects, true means src->dst, false means dst->src
-        let biDirLinks = new Map<string, Map<string, boolean>>()
-        Object.keys(links).forEach(src => {
-            if (!(src in biDirLinks)) biDirLinks[src] = new Map<string, boolean>()
-            let dsts = links[src]
-            dsts.forEach(dst => {
-                if (!(dst in biDirLinks)) biDirLinks[dst] = new Map<string, boolean>()
-                biDirLinks[src][dst] = true
-                biDirLinks[dst][src] = false
-            })
-        })
-        links = biDirLinks
-    }
     let currentNodeRoute = node.n == 'root' ? [] : preroutes.concat([node.n])
     node.c.forEach(c => RootNode.addGrandchild(currentNodeRoute, (new HierarchicalNode(c.n, c.v))))
     let currentNode = RootNode.find(currentNodeRoute).createImmediateObject()
