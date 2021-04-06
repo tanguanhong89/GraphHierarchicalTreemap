@@ -34,24 +34,24 @@
             c: [{
                 n: "qwe", // child qwe
                 v: 1,
-                c: [],
-            }, ],
+                c: []
+            }]
         }, {
             n: "b", //child b
             v: 1,
             c: [{
                 n: "ba", // child ba
                 v: 1,
-                c: [],
+                c: []
             }, {
                 n: "asd", // child asd
                 v: 1,
-                c: [],
+                c: []
             }, {
                 n: "bc", // child bc
                 v: 1,
-                c: [],
-            }, ],
+                c: []
+            }],
         }, ],
     };
 
@@ -60,13 +60,13 @@
     };
 
     // optional
-    let rectColoring = (childName) => {
+    let rectColoring = (firstAncestorName) => {
         // ref https://github.com/d3/d3-scale-chromatic/blob/master/README.md
         let colors = {
             'a': d3.scaleSequential([GraphHierarchicalTreemap.maxDepth, 0], d3.interpolateBlues),
             'b': d3.scaleSequential([GraphHierarchicalTreemap.maxDepth, 0], d3.interpolateReds),
         };
-        return colors[childName]
+        return colors[firstAncestorName]
     }
 
     // optional
