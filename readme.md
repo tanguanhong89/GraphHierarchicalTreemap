@@ -95,10 +95,10 @@ let  links = { // 1 source, a.qwe to 2 destinations b.ba and b.bc
 ```
 
 Links contain source addresses as keys and a set containing their destination addresses as value. So for the below example, we have links
-> **a.qwe ->b.ba** 
-> **a.qwe -> b.bc**
+> a.qwe ->b.ba
+> a.qwe -> b.bc
 
- Source & destination be of hierarchical different levels. Eg.
+ Source & destination can be of hierarchical different levels. Eg.
 > **a.a.a.a -> b.b**
 > 
 ### 2.3.3. rectColoring(optional)
