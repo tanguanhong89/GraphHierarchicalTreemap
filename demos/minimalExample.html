@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<style>
+    html,
+    body {
+        background-color: black;
+    }
+</style>
+
+
+<body>
+    <div id="svg-container">
+        <svg id="svg" viewbox="0 0 48000 24000" style="width: 1841px; height: 587px">
+        <g id="root" style="width: 48000px; height: 24000px"></g>
+      </svg>
+    </div>
+</body>
+<script src="https://cdn.jsdelivr.net/gh/PhantomV1989/GraphHierarchicalTreemap/bin/d3.v6.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/PhantomV1989/GraphHierarchicalTreemap/bin/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/PhantomV1989/GraphHierarchicalTreemap/bin/graph-hierarchical-treemap.min.js"></script>
+
+<script>
+    let height = $(window).height();
+    let width = $(window).width();
+    $("svg")[0].style.width = width;
+    $("svg")[0].style.height = height;
+
+    let data = {
+        n: "root", // always starts with root node
+        v: 1, // just set as 1, needed because of d3's sizing algo
+        c: [{
+            n: "a", // child a
+            v: 1,
+            c: [{
+                n: "qwe", // child qwe
+                v: 1,
+                c: [],
+            }, ],
+        }, {
+            n: "b", //child b
+            v: 1,
+            c: [{
+                n: "ba", // child ba
+                v: 1,
+                c: [],
+            }, {
+                n: "asd", // child asd
+                v: 1,
+                c: [],
+            }, {
+                n: "bc", // child bc
+                v: 1,
+                c: [],
+            }, ],
+        }, ],
+    };
+
+    let links = { // 1 source, a.qwe to 2 destinations b.ba and b.bc
+        "a.qwe": new Set(["b.ba", "b.bc"]),
+    };
+
+    // optional
+    let rectColoring = (childName) => {
+        // ref https://github.com/d3/d3-scale-chromatic/blob/master/README.md
+        let colors = {
+            'a': d3.scaleSequential([GraphHierarchicalTreemap.maxDepth, 0], d3.interpolateBlues),
+            'b': d3.scaleSequential([GraphHierarchicalTreemap.maxDepth, 0], d3.interpolateReds),
+        };
+        return colors[childName]
+    }
+
+    // optional
+    let lineColoring = d3.scaleSequential([GraphHierarchicalTreemap.maxDepth, 0], d3.interpolateCool)
+
+    drawGraphHierarchicalTreemap(
+        data,
+        links,
+        rectColoring, // optional
+        lineColoring // optional
+    );
+</script>
+
+</html>
