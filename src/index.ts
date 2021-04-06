@@ -80,13 +80,11 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
                     .attr("class", [pclass, depthClass].join(' '))
                     .attr("id", "g-" + r1.join('.'));
 
-                let color = GHT.coloring.rect(r1[0])(dep);
-
                 let rect = g.append("rect")
                     .attr("id", r1.join('.'))
                     .style("width", (d.x1 - d.x0) + "px")
                     .style("height", (d.y1 - d.y0) + "px")
-                if (d.data.n != 'root') rect.style("fill", color)
+                if (d.data.n != 'root') rect.style("fill", GHT.coloring.rect(r1[0])(dep))
 
                 RootNode.updateDrawn(r1)
             }
