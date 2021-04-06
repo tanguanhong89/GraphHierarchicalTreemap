@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<style>
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: black;
+    }
+</style>
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <meta charset="UTF-8" />
+</head>
+
+<body>
+    <div id="svg-container" data-zoom-on-wheel="zoom-amount: 0.01; min-scale: 1; max-scale: 100;" data-pan-on-drag>
+        <svg id="svg" viewbox="0 0 48000 24000" style="width: 1841px; height: 587px">
+        <g id="root" style="width: 48000px; height: 24000px"></g>
+      </svg>
+    </div>
+</body>
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="./graphhierarchicaltreemap.min.js"></script>
+<script src="./svg-pan-zoom-container@0.5.0.js"></script>
+<script>
+    let height = $(window).height();
+    let width = $(window).width();
+    $("svg")[0].style.width = width;
+    $("svg")[0].style.height = height;
+
+    let allNames = [];
+
+    function generateData(maxDepth, maxChildren, name) {
+        let count = 0;
+
+        function boo(n) {
+            count += 1;
+            return {
+                n: "" + n,
+                v: 1,
+                c: [],
+            };
+        }
+
+        function foo(rr, d) {
+            if (d.length > maxDepth) {
+                return;
+            }
+            for (let i = 0; i < maxChildren; i++) {
+                if (Math.random() > 0.5 || d.length == 0) {
+                    let cc = boo(i);
+                    rr["c"].push(cc);
+                    allNames.push(d.concat(cc.n).join("."));
+                }
+            }
+            rr["c"].forEach((c) => {
+                foo(c, d.concat([c.n]));
+            });
+        }
+        let r = boo(name);
+
+        foo(r, []);
+
+        console.log(count + " objs generated");
+        return r;
+    }
+
+    function generateLinks(count, allNames) {
+        let links = {};
+        let c = 0;
+        let breaker = 0;
+
+        function foo() {
+            return allNames[Math.round(Math.random() * allNames.length)];
+        }
+        while (1) {
+            let a = foo();
+            let b = foo();
+            if (a != b) {
+                if (!(a in links)) links[a] = new Set();
+                links[a].add(b);
+            }
+            c++;
+            if (c > count || breaker > 100) break;
+        }
+        return links;
+    }
+
+    let data = generateData(6, 9, "root");
+    let links = generateLinks(3000, allNames);
+    let h1 = (a) => {
+        return d3.scaleSequential([GraphHierarchicalTreemap.maxDepth, 0], a);
+    };
+    let c1 = [
+        h1(d3.interpolateInferno),
+        h1(d3.interpolateViridis),
+        h1(d3.interpolateTurbo),
+        h1(d3.interpolateRdYlGn),
+        h1(d3.interpolateCool),
+        h1(d3.interpolateWarm),
+        //h1(d3.interpolateBrBG),
+        h1(d3.interpolateSinebow),
+        h1(d3.interpolatePiYG),
+        h1(d3.interpolateRainbow),
+        //h1(d3.interpolatePRGn),
+    ];
+    let colorSchemeList = [];
+    let used = new Set();
+    while (1) {
+        let n = Math.floor(Math.random() * c1.length);
+        if (!used.has(n)) {
+            colorSchemeList.push(c1[n]);
+            used.add(n);
+        }
+        if (colorSchemeList.length > c1.length - 1) break;
+    }
+    drawGraphHierarchicalTreemap(
+        data,
+        links,
+        (c) => {
+            let defaultColor = d3.scaleSequential(
+                [GraphHierarchicalTreemap.maxDepth, 0],
+                d3.interpolateBlues
+            );
+            if (!c) return defaultColor;
+
+            return colorSchemeList[c % colorSchemeList.length];
+        },
+        d3.scaleSequential(
+            [0, GraphHierarchicalTreemap.maxDepth],
+            d3.interpolateSinebow
+        )
+    );
+</script>
+
+</html>

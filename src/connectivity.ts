@@ -232,7 +232,7 @@ export function DrawLinks(n1: string, n2: string) {
             let x2 = +(x2y2[0])
             let y2 = +(x2y2[1])
 
-            let line = root.insert('line', '.depth' + depth + 1)
+            let line = root.insert('line', '.depth' + (depth + 1))
                 .style("stroke", GHT.coloring.line(depth))
                 .style("stroke-width", GHT.depthPadding[depth - 1] / 3)
                 .attr("stroke-linecap", "round")
