@@ -125,5 +125,6 @@ You can also define coloring function for lines to depict different colors at di
 let  lineColoring = d3.scaleSequential([GraphHierarchicalTreemap.maxDepth, 0], d3.interpolateCool)
 ```
 ## 2.4. Notes
+- Lines always leave source nodes from the upper sides and join destination nodes from the lower sides
 - Currently drawing up to a minimum length of 10 pixels for either side for rectangles
 - Maximum depth drawn is 10.
