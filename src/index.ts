@@ -121,16 +121,26 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
 }
 
 function createDefaultColorScheme(node) {
+    let h1 = (a) => {
+        return d3.scaleSequential([GHT.maxDepth, 0], a);
+    };
     let colorSchemeList = [
-        d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateCool),
-        d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateSinebow),
-        d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateWarm),
-        d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateRainbow),
+        h1(d3.interpolateInferno),
+        h1(d3.interpolateViridis),
+        h1(d3.interpolateTurbo),
+        h1(d3.interpolateRdYlGn),
+        h1(d3.interpolateCool),
+        h1(d3.interpolateWarm),
+        h1(d3.interpolateBrBG),
+        h1(d3.interpolateSinebow),
+        h1(d3.interpolatePiYG),
+        h1(d3.interpolateRainbow),
+        h1(d3.interpolatePRGn),
     ]
 
     let colorMap = new Map<String, any>()
     node.c.forEach(c => {
-        let n = Math.floor(Math.random() * node.c.length)
+        let n = Math.floor(Math.random() * colorSchemeList.length)
         colorMap.set(c.n, colorSchemeList[n])
     })
     return function (n: string) {
