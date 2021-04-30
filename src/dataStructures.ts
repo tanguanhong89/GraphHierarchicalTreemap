@@ -1,6 +1,6 @@
 let GraphHierarchicalTreemap = {
     minPxSize: 10,
-    maxDepth: 10,
+    maxDepth: 20,
     pixelCorrection: 8, //+- this value = snapped
     xPortCount: 1, // no point using beyond 1. Path search algo only uses first of each
     yPortCount: 1,

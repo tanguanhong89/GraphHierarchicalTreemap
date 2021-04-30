@@ -32,13 +32,14 @@ function drawGraphHierarchicalTreemap(node: any, links: any, rectColoring: any, 
 
 
 function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: boolean, preroutes: Array<string>) {
-    let ifBreak = false
+    let drawnAny = false
     let depth = d1.n == 'root' ? 0 : preroutes.length + 1
     if (d1.children.length == 0) return true
     let id = preroutes.concat([d1.n]).join('.')
     let oid = "#" + id;
     oid = oid.replace(/\./g, '\\.')
     let o = $(oid)[0];
+    if (o == undefined) return drawnAny
 
     let width = +(o.style.width.replace("px", ""))
     let height = +(o.style.height.replace("px", ""));
@@ -68,8 +69,8 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
 
     function h1(d, r1, dep) {
         if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) {
-            ifBreak = true
         } else {
+            drawnAny = true
             if (!RootNode.find(r1).drawn) {
                 let g = d3.select("#root").append('g');
                 let pclass = "p" + (r1.length == 0 ? "graphhierarchicaltreemap" : r1.length == 1 ? "root" : r1.slice(0, -1).join('.'))
@@ -101,7 +102,7 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
     if (drawDebugLines) DebugDrawConnectivity(graph, padding)
 
     //draw links whichever renders last    
-    if (!ifBreak)// ifBreak, rects are not rendered
+    if (drawnAny)// drawnAny, if any rects are drawn at all
         d1.children.forEach(x => {
             let id = d1.n == 'root' ? x.n : preroutes.concat([d1.n]).concat([x.n]).join('.')
             if (id in links) {
@@ -117,7 +118,7 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
                 })
             }
         })
-    return ifBreak
+    return drawnAny
 }
 
 function createDefaultColorScheme(node) {
@@ -151,14 +152,16 @@ function createDefaultColorScheme(node) {
 
 function createHierarchicalTreemap(node: any, links: any, drawDebugLines = false, preroutes: Array<string>) {
     let currentNodeRoute = node.n == 'root' ? [] : preroutes.concat([node.n])
-    node.c.forEach(c => RootNode.addGrandchild(currentNodeRoute, (new HierarchicalNode(c.n, c.v))))
-    let currentNode = RootNode.find(currentNodeRoute).createImmediateObject()
-    if (!drawTreemap(currentNode, links, drawDebugLines, preroutes)) {
-        if (node.n != 'root') preroutes = preroutes.concat(node.n)
-        node.c.forEach(w => {
-            setTimeout(() => {
-                createHierarchicalTreemap(w, links, drawDebugLines, preroutes)
-            }, 0)
-        })
+    if ('c' in node) {
+        node.c.forEach(c => RootNode.addGrandchild(currentNodeRoute, (new HierarchicalNode(c.n, c.v))))
+        let currentNode = RootNode.find(currentNodeRoute).createImmediateObject()
+        if (drawTreemap(currentNode, links, drawDebugLines, preroutes)) {
+            if (node.n != 'root') preroutes = preroutes.concat(node.n)
+            node.c.forEach(w => {
+                setTimeout(() => {
+                    createHierarchicalTreemap(w, links, drawDebugLines, preroutes)
+                }, 0)
+            })
+        }
     }
 }
