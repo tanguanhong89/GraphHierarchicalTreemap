@@ -14,7 +14,7 @@
 
 <body>
     <div id="svg-container" data-zoom-on-wheel="zoom-amount: 0.01; min-scale: 1; max-scale: 100;" data-pan-on-drag>
-        <svg id="svg" viewbox="0 0 48000 24000" style="width: 1841px; height: 587px">
+        <svg id="svg" viewbox="0 0 48000 24000">
         <g id="root" style="width: 48000px; height: 24000px"></g>
       </svg>
     </div>
@@ -28,6 +28,10 @@
     let width = $(window).width();
     $("svg")[0].style.width = width;
     $("svg")[0].style.height = height;
+    $("svg")[0].setAttribute(
+        "style",
+        "width: " + width + "px; height: " + height + "px"
+    );
 
     let allNames = [];
 

@@ -14,7 +14,7 @@
 
 <body>
     <div id="svg-container">
-        <svg id="svg" viewbox="0 0 48000 24000" style="width: 1841px; height: 587px">
+        <svg id="svg" viewbox="0 0 48000 24000">
         <g id="root" style="width: 48000px; height: 24000px"></g>
       </svg>
     </div>
@@ -27,6 +27,10 @@
     let width = $(window).width();
     $("svg")[0].style.width = width;
     $("svg")[0].style.height = height;
+    $("svg")[0].setAttribute(
+        "style",
+        "width: " + width + "px; height: " + height + "px"
+    );
 
     let allNames = [];
 
@@ -108,7 +112,6 @@
         if (colorSchemeList.length > c1.length) break;
     }
 
-
     let data = generateData(7, 9, "root");
     let links = generateLinks(1000, allNames);
 
@@ -121,7 +124,7 @@
                 d3.interpolateBlues
             );
             if (!c) return defaultColor;
-            return colorSchemeList[c % colorSchemeList.length]
+            return colorSchemeList[c % colorSchemeList.length];
         },
         d3.scaleSequential(
             [0, GraphHierarchicalTreemap.maxDepth],
