@@ -55,7 +55,7 @@ drawGraphHierarchicalTreemap(
 ```
 Refer to https://raw.githubusercontent.com/PhantomV1989/GraphHierarchicalTreemap/master/demos/minimalExample.html for a running example.
 ### 2.3.1. nodes
-Each node has 3 parameters: **n**(name), **v**(value), **c**(children).
+Each node has 3 parameters: **n**(**UNIQUE** name), **v**(value), **c**(children).
 Root node **MUST** always be named **"root"**.
 **v** is used by d3's treemap for calculating the node's relative rectangle size.
 
@@ -82,29 +82,22 @@ let data = {
 };
 ```
 ### 2.3.2. links
-Links contain directional information of the node data.
-Node addressing is done by using period **.** to indicate parent-child relationship.
-
-Using example above, we have node **a**, with child node **qwe**. The address of this child node from root would be **a.qwe**.
-
+Links contain directional information of the node data. 
+They are described using key-value pairs, where keys are unique node names (node.**n**) of source nodes and values are a set of destination node names these sources are linked to. 
 
 ```js
-let  links = { // 1 source, a.qwe to 2 destinations b.ba and b.bc
-	"a.qwe":  new  Set(["b.ba", "b.bc"]),
+let  links = { // 1 source, qwe to 2 destinations ba and bc
+	"qwe":  new  Set(["ba", "bc"]),
 };
 ```
+The above example illustrate the following relationships:
+**qwe ->ba**,
+**qwe -> bc**
 
-Links contain source addresses as keys and a set containing their destination addresses as value. So for the below example, we have links
-**a.qwe ->b.ba**,
-**a.qwe -> b.bc**
-
- Source & destination can be of hierarchical different levels. Eg.
-> **a.a.a.a -> b.b**
-> 
 ### 2.3.3. rectColoring(optional)
 rectColoring defines how rectangles should be colored according to their first ancestor name. 
 
-For example, a **'a.b.4.6.2.v'** rectangle, would have first ancestor **'a'**, hence interpolateBlues is used. 
+Using the example below, a **'a.b.4.6.2.v'** rectangle, would have first ancestor **'a'**, hence interpolateBlues is used based on the example. 
 **'a.b.4.6.2.v'** is 5 levels(from 0), hence the color for the rectangle would be **d3.scaleSequential([GraphHierarchicalTreemap.maxDepth, 0], d3.interpolateBlues)(5)**
 
 **maxDepth** is set to 10.

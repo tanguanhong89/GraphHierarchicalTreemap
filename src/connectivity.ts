@@ -1,5 +1,6 @@
 import { Point, GraphHierarchicalTreemap as GHT } from './dataStructures'
 import * as d3 from 'd3'
+import { NodeLookup } from 'dataStructures'
 
 class Snappables {
     x: Set<number>
@@ -15,7 +16,7 @@ export function CalculateConnectivity(currentID: string, padding: number): Map<s
     let snappables = new Snappables()
 
     padding = Math.round(padding / 2)
-    let grects = $(".p" + currentID.replace(/\./g, '\\.'));
+    let grects = $(".p-" + currentID);
 
     function findSnap(v: number, k: string): number { //snap to either existing x's or y's
         let vlist = k == 'x' ? snappables.x : snappables.y
@@ -184,7 +185,7 @@ export function FindBestPath(start: string, end: string, parentName: string) {
         [start]
     ]
     let covered = new Set([start])
-    if (parentName == '') parentName = 'root'
+    if (parentName == '' || parentName == undefined) parentName = 'root'
     while (s1.length > 0) {
         let path = s1.shift()
         let lastNode = path.slice(-1)[0]
@@ -210,9 +211,8 @@ export function DrawLinks(n1: string, n2: string) {
         return GHT.drawnLinks[n1][n2]
 
     if (n1 == n2) return []
-    if (n1.startsWith(n2) || n2.startsWith(n1)) return [] // parentof
-    let n1s = n1.split('.')
-    let n2s = n2.split('.')
+    let n1s = NodeLookup[n1].concat([n1])
+    let n2s = NodeLookup[n2].concat([n2])
     let n1level = n1s.length
     let n2level = n2s.length
     let maxDrawDepth = Math.max(n1level, n2level)
@@ -235,7 +235,7 @@ export function DrawLinks(n1: string, n2: string) {
             let width = Math.round(GHT.depthPadding[depth - 1] / 4)
             let line = root.insert('line', '.depth' + (depth + 1))
                 .style("stroke", GHT.coloring.line(depth))
-                .style("stroke-width", width==0?1:width)
+                .style("stroke-width", width == 0 ? 1 : width)
                 .attr("stroke-linecap", "round")
                 .attr("x1", x1)
                 .attr("y1", y1)
@@ -247,14 +247,15 @@ export function DrawLinks(n1: string, n2: string) {
     let maxCommonLevel = Math.min(n1level, n2level)
     let baseNodes = []
     let commonPLvl = 0
-    for (let lvl = 1; lvl <= maxCommonLevel; lvl++) {
-        let n1p = n1s.slice(0, lvl).join('.')
-        let n2p = n2s.slice(0, lvl).join('.')
+    for (let lvl = 0; lvl < maxCommonLevel; lvl++) {
+        let n1p = n1s[lvl]
+        let n2p = n2s[lvl]
         if (n1p != n2p) {
-            baseNodes = FindBestPath(GHT.rectPorts.get(n1p)[0].getUniqueKey(), GHT.rectPorts.get(n2p)[1].getUniqueKey(), n1s.slice(0, lvl - 1).join('.'))
+            baseNodes = FindBestPath(GHT.rectPorts.get(n1p)[0].getUniqueKey(), GHT.rectPorts.get(n2p)[1].getUniqueKey(), n1s[lvl - 1])
             commonPLvl = lvl
             for (let i = lvl; i <= maxDrawDepth; i++)
-                drawSVGLines(baseNodes, i)
+                if (i > 0)
+                    drawSVGLines(baseNodes, i)
             break
         }
     }
@@ -262,35 +263,34 @@ export function DrawLinks(n1: string, n2: string) {
         // baseNodes = commonParent.a1 -> commonParent.b1
         // [prepend] commonParent.a1.a2 to baseNodes
         // [append] commonParent.b1.b2 to baseNodes
-        let prependID = n1s.slice(0, commonPLvl).join('.')
-        for (let i = commonPLvl + 1; i <= n1level; i++) {
-            let newID = n1s.slice(0, i).join('.')
+        let prependID = n1s[commonPLvl]
+        for (let i = commonPLvl + 1; i < n1level; i++) {
+            let newID = n1s[i]
             let newIDPort = GHT.rectPorts.get(newID)[0].getUniqueKey() // out
             let prependPort = GHT.rectPorts.get(prependID)[0].getUniqueKey()
             if (prependPort != baseNodes[0]) {
                 throw ("Mismatched ports")
             }
-            let nodes = FindBestPath(newIDPort, prependPort, n1s.slice(0, i - 1).join('.'))
+            let nodes = FindBestPath(newIDPort, prependPort, prependID)
             for (let ii = i; ii <= maxDrawDepth; ii++)
                 drawSVGLines(nodes, ii)
             baseNodes = nodes.slice(0, -1).concat(baseNodes)
             prependID = newID
         }
 
-        let appendID = n2s.slice(0, commonPLvl).join('.')
-        for (let i = commonPLvl + 1; i <= n2level; i++) {
-            let newID = n2s.slice(0, i).join('.')
+        let appendID = n2s[commonPLvl]
+        for (let i = commonPLvl + 1; i < n2level; i++) {
+            let newID = n2s[i]
             let newIDPort = GHT.rectPorts.get(newID)[1].getUniqueKey() // if undefined, parent is not rendered
             let appendPort = GHT.rectPorts.get(appendID)[1].getUniqueKey()
             if (appendPort != baseNodes[baseNodes.length - 1]) {
                 throw ("Mismatched ports")
             }
-            let nodes = FindBestPath(appendPort, newIDPort, n2s.slice(0, i - 1).join('.'))
+            let nodes = FindBestPath(appendPort, newIDPort, appendID)
             for (let ii = i; ii <= maxDrawDepth; ii++)
                 drawSVGLines(nodes, ii)
             baseNodes = baseNodes.slice(0, -1).concat(nodes)
             appendID = newID
-
         }
         //drawSVGLines(baseNodes, Math.max(n1level, n2level))
         return baseNodes

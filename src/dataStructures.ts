@@ -8,7 +8,7 @@ let GraphHierarchicalTreemap = {
     connectivityGraphs: new Map<string, Map<string, Set<string>>>(),
     rectPorts: new Map<string, Point[]>(),// IO ports of each rect
     drawnLines: new Map<string, Set<string>>(),
-    drawnLinks: new Map<string, Map<string,Array<string>>>(),//src -> dsts (each point xy)
+    drawnLinks: new Map<string, Map<string, Array<string>>>(),//src -> dsts (each point xy)
 
     depthPadding: new Map<number, number>(),
 
@@ -17,6 +17,9 @@ let GraphHierarchicalTreemap = {
         rect: undefined
     }
 }
+
+let NodeLookup = new Map<string, string[]>();
+
 
 export class Point {
     x: number
@@ -42,13 +45,11 @@ export class Point {
 export class HierarchicalNode {
     name: string
     value: number
-    drawn: boolean
     children: Map<string, HierarchicalNode>
 
     constructor(name: string, value: number) {
         this.name = name
         this.value = value
-        this.drawn = false
         this.children = new Map<string, HierarchicalNode>()
     }
 
@@ -58,23 +59,16 @@ export class HierarchicalNode {
 
     addGrandchild(routes: Array<string>, child: HierarchicalNode) {
         this.find(routes).addChild(child)
+        NodeLookup[child.name] = routes
     }
 
     find(routes: Array<string>): HierarchicalNode | undefined {
         if (routes.length == 0) return this
-        else if (routes.length == 1) {
-            return this.children.get(routes[0])
-        } else if (routes.length > 1) {
-            let immediateChild = routes[0]
-            if (this.children.has(immediateChild))
-                return this.children.get(immediateChild).find(routes.slice(1))
+        if (this.name == routes[0]) {
+            if(routes.length==1)return this
+            else return this.children.get(routes[1]).find(routes.slice(1))
         }
         return
-    }
-
-    updateDrawn(routes: Array<string>) {
-        let node = this.find(routes)
-        if (node) node.drawn = true
     }
 
     createImmediateObject(): any {
@@ -92,7 +86,7 @@ export class HierarchicalNode {
     }
 }
 
-export class HierarchicalLinks{
+export class HierarchicalLinks {
 
 }
 
@@ -100,4 +94,4 @@ let RootNode = new HierarchicalNode('root', 0)
 
 
 
-export { GraphHierarchicalTreemap, RootNode }
+export { GraphHierarchicalTreemap, RootNode, NodeLookup }

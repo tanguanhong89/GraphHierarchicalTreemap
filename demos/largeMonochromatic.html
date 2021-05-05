@@ -51,10 +51,10 @@
                 return;
             }
             for (let i = 0; i < maxChildren; i++) {
-                if (Math.random() > 0.6 || d.length == 0) {
-                    let cc = boo(i);
+                if (Math.random() > 0.5 || d.length == 0) {
+                    allNames.push(count);
+                    let cc = boo(count);
                     rr["c"].push(cc);
-                    allNames.push(d.concat(cc.n).join("."));
                 }
             }
             rr["c"].forEach((c) => {
@@ -75,7 +75,7 @@
         let breaker = 0;
 
         function foo() {
-            return allNames[Math.round(Math.random() * allNames.length)];
+            return allNames[Math.floor(Math.random() * allNames.length)];
         }
         while (1) {
             let a = foo();
