@@ -65,7 +65,7 @@ export class HierarchicalNode {
     find(routes: Array<string>): HierarchicalNode | undefined {
         if (routes.length == 0) return this
         if (this.name == routes[0]) {
-            if(routes.length==1)return this
+            if (routes.length == 1) return this
             else return this.children.get(routes[1]).find(routes.slice(1))
         }
         return
@@ -86,9 +86,6 @@ export class HierarchicalNode {
     }
 }
 
-export class HierarchicalLinks {
-
-}
 
 let RootNode = new HierarchicalNode('root', 0)
 
