@@ -36,11 +36,10 @@ function drawGraphHierarchicalTreemap(node: any, links: any, rectColoring: any, 
 
 function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: boolean, preroutes: Array<string>) {
     let drawnAny = false
-    let depth = d1.n == 'root' ? 0 : preroutes.length + 1
+    let depth = preroutes.length;
     if (d1.children.length == 0) return true
     let id = d1.n
     let oid = "#" + id;
-    oid = oid.replace(/\./g, '\\.')
     let o = $(oid)[0];
     if (o == undefined) return drawnAny
 
@@ -48,6 +47,9 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
     let height = +(o.style.height.replace("px", ""));
     let padding = width / 30 + depth;
     if (!(depth in GHT.depthPadding)) GHT.depthPadding[depth] = padding;
+    else GHT.depthPadding[depth] = Math.min(depth > 0 ?
+        Math.min(GHT.depthPadding[depth - 1] *3/4, padding) : padding,
+        GHT.depthPadding[depth]);
     d1.v = 0;
     let treemap = (d1) =>
         d3
@@ -75,24 +77,24 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
         } else {
             drawnAny = true
             if (NodeLookup[d.data.n] == undefined) {
-                let g = d3.select("#root").append('g');
-                let pclass = "p-" + (p != undefined ? p : "")
-                let depthClass = "depth" + dep
+                let depthClass = "depth" + dep;
+                let gclass = d3.select('.' + depthClass).size() > 0 ? d3.select('.' + depthClass) : d3.select("#root").append('g')
+                    .attr("class", depthClass)
+                let g = gclass.append('g');
+                let pclass = "p-" + (p != undefined ? p : "");
                 g.attr("transform", `translate(${xoffset + d.x0},${yoffset + d.y0})`)
                     .attr("x", xoffset + d.x0) //does nothing, for easier ref
                     .attr("y", yoffset + d.y0) //does nothing, for easier ref
-                    .attr("class", [pclass, depthClass].join(' '))
+                    .attr("class", pclass)
                     .attr("id", "g-" + d.data.n);
-
                 let rect = g.append("rect")
                     .attr("id", d.data.n)
                     .style("width", (d.x1 - d.x0) + "px")
-                    .style("height", (d.y1 - d.y0) + "px")
+                    .style("height", (d.y1 - d.y0) + "px");
                 if (d.data.n != 'root') {
-                    rect.style("fill", GHT.coloring.rect(preroutes.length > 1 ? preroutes[1] : d.data.n)(dep))
-                    RootNode.addGrandchild(preroutes, (new HierarchicalNode(d.data.n, d.data.v)))
+                    rect.style("fill", GHT.coloring.rect(preroutes.length > 1 ? preroutes[1] : d.data.n)(dep));
+                    RootNode.addGrandchild(preroutes, (new HierarchicalNode(d.data.n, d.data.v)));
                 }
-
             }
 
         }

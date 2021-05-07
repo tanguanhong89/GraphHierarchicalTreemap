@@ -218,7 +218,7 @@ export function DrawLinks(n1: string, n2: string) {
     let maxDrawDepth = Math.max(n1level, n2level)
 
     function drawSVGLines(nodes, depth) {//depth starts from 1
-        const root = d3.select('#root')
+        const layer = d3.select('.depth' + (depth - 1));
         if (!(depth in GHT.drawnLines)) GHT.drawnLines[depth] = new Set()
         for (let i = 0; i < nodes.length - 1; i++) {
             let xykey = [nodes[i], nodes[i + 1]].sort().join('.')
@@ -232,15 +232,16 @@ export function DrawLinks(n1: string, n2: string) {
             let x2 = +(x2y2[0])
             let y2 = +(x2y2[1])
 
-            let width = Math.round(GHT.depthPadding[depth - 1] / 4)
-            let line = root.insert('line', '.depth' + (depth + 1))
+            let width = Math.floor(GHT.depthPadding[depth - 1] / 4)
+            let line = layer.append('line')
                 .style("stroke", GHT.coloring.line(depth))
                 .style("stroke-width", width == 0 ? 1 : width)
                 .attr("stroke-linecap", "round")
                 .attr("x1", x1)
                 .attr("y1", y1)
                 .attr("x2", x2)
-                .attr("y2", y2);
+                .attr("y2", y2)
+                .attr("depth", depth)
             GHT.drawnLines[depth].add(xykey);
         }
     }
@@ -253,7 +254,7 @@ export function DrawLinks(n1: string, n2: string) {
         if (n1p != n2p) {
             baseNodes = FindBestPath(GHT.rectPorts.get(n1p)[0].getUniqueKey(), GHT.rectPorts.get(n2p)[1].getUniqueKey(), n1s[lvl - 1])
             commonPLvl = lvl
-            for (let i = lvl; i <= maxDrawDepth; i++)
+            for (let i = lvl; i < maxDrawDepth; i++)
                 if (i > 0)
                     drawSVGLines(baseNodes, i)
             break
@@ -272,7 +273,7 @@ export function DrawLinks(n1: string, n2: string) {
                 throw ("Mismatched ports")
             }
             let nodes = FindBestPath(newIDPort, prependPort, prependID)
-            for (let ii = i; ii <= maxDrawDepth; ii++)
+            for (let ii = i; ii < maxDrawDepth; ii++)
                 drawSVGLines(nodes, ii)
             baseNodes = nodes.slice(0, -1).concat(baseNodes)
             prependID = newID
@@ -287,7 +288,7 @@ export function DrawLinks(n1: string, n2: string) {
                 throw ("Mismatched ports")
             }
             let nodes = FindBestPath(appendPort, newIDPort, appendID)
-            for (let ii = i; ii <= maxDrawDepth; ii++)
+            for (let ii = i; ii < maxDrawDepth; ii++)
                 drawSVGLines(nodes, ii)
             baseNodes = baseNodes.slice(0, -1).concat(nodes)
             appendID = newID
