@@ -47,9 +47,11 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
     let height = +(o.style.height.replace("px", ""));
     let padding = width / 30 + depth;
     if (!(depth in GHT.depthPadding)) GHT.depthPadding[depth] = padding;
-    else GHT.depthPadding[depth] = Math.min(depth > 0 ?
-        Math.min(GHT.depthPadding[depth - 1] *3/4, padding) : padding,
-        GHT.depthPadding[depth]);
+    else {
+        let newPadding = GHT.depthPadding[depth] * 4 / 5 + padding * 1 / 5;
+        GHT.depthPadding[depth] = depth > 0 ?
+            Math.min(GHT.depthPadding[depth - 1] * 7 / 8, newPadding) : newPadding
+    }
     d1.v = 0;
     let treemap = (d1) =>
         d3
