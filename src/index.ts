@@ -153,16 +153,31 @@ function createDefaultColorScheme(node) {
     }
 }
 
+function findEstimatedLargerSqrt(n: number) {
+    let nn = Math.max(1, n / 1000 | 0), i = 1;
+    for (i = 1; i < n / 2; i += nn) {
+        if (i * i > n) return i
+    }
+    return i
+}
+
 
 function createHierarchicalTreemap(node: any, links: any, drawDebugLines = false, preroutes: Array<string>) {
-    let currentNodeRoute = node.n == 'root' ? [] : preroutes.concat([node.n])
     if ('c' in node) {
+        let mxV = 0, sV = 0, k = 0.1;
+        node.c.forEach(c => {
+            c.v = findEstimatedLargerSqrt(c.v);
+            mxV = Math.max(mxV, c.v)
+        })
+
         let currentNode = {
             n: node.n, v: node.v, children: []
         }
         node.c.forEach(c => {
-            currentNode.children.push({ n: c.n, v: c.v, children: [] })
+            currentNode.children.push({ n: c.n, v: c.v * mxV, children: [] })
+            sV += c.v * mxV
         })
+        currentNode.v = sV
         if (drawTreemap(currentNode, links, drawDebugLines, preroutes)) {
             preroutes = preroutes.concat(node.n)
             node.c.forEach(w => {
