@@ -34,54 +34,53 @@ function drawGraphHierarchicalTreemap(node: any, links: any, rectColoring: any, 
 }
 
 
-function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: boolean, preroutes: Array<string>) {
-    let drawnAny = false
+function drawTreemap(d1, links, drawDebugLines, preroutes) {
+    let drawnAny = false;
     let depth = preroutes.length;
-    if (d1.children.length == 0) return true
-    let id = d1.n
+    if (d1.children.length == 0)
+        return true;
+    let id = d1.n;
     let oid = "#" + id;
     let o = $(oid)[0];
-    if (o == undefined) return drawnAny
-
-    let width = +(o.style.width.replace("px", ""))
+    if (o == undefined)
+        return drawnAny;
+    let width = +(o.style.width.replace("px", ""));
     let height = +(o.style.height.replace("px", ""));
     let padding = width / 30 + depth;
-    if (!(depth in GHT.depthPadding)) GHT.depthPadding[depth] = padding;
-    else {
-        let newPadding = GHT.depthPadding[depth] * 4 / 5 + padding * 1 / 5;
-        GHT.depthPadding[depth] = depth > 0 ?
-            Math.min(GHT.depthPadding[depth - 1] * 7 / 8, newPadding) : newPadding
-    }
+
+    if (!(depth in GHT.depthPadding))
+        GHT.depthPadding[depth] = padding;
+    else
+        GHT.depthPadding[depth] = GHT.depthPadding[depth] * 4 / 5 + padding * 1 / 5;
+    if (depth > 0)
+        if (GHT.depthPadding[depth - 1] < GHT.depthPadding[depth])
+            GHT.depthPadding[depth] = GHT.depthPadding[depth - 1] * 7 / 8;
+
     d1.v = 0;
-    let treemap = (d1) =>
-        d3
-            .treemap()
-            .tile(d3.treemapSquarify.ratio(1.1))
-            .size([width, height])
-            .paddingOuter(padding)
-            .paddingInner(padding)
-            .round(true)(d3.hierarchy(d1).sum(d => d.v));
+    let treemap = (d1) => d3
+        .treemap()
+        .tile(d3.treemapSquarify.ratio(1.1))
+        .size([width, height])
+        .paddingOuter(padding)
+        .paddingInner(padding)
+        .round(true)(d3.hierarchy(d1).sum(d => d.v));
     const treemapd = treemap(d1);
-
-    let dataGrp = d3.group(treemapd, (d) => d.depth) as any;
-
+    let dataGrp = d3.group(treemapd, (d) => d.depth);
     let gid = "#g-" + id;
-    gid = gid.replace(/\./g, '\\.')
+    gid = gid.replace(/\./g, '\\.');
     let g = $(gid)[0];
     let xoffset = g == undefined ? 0 : +(g.getAttribute('x'));
     let yoffset = g == undefined ? 0 : +(g.getAttribute('y'));
-
-    let parentLayer = dataGrp.get(0)
-    let childrenLayer = dataGrp.get(1)
+    let parentLayer = dataGrp.get(0);
+    let childrenLayer = dataGrp.get(1);
 
     function h1(d, dep, p) {
-        if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) {
-        } else {
-            drawnAny = true
+        if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) { } else {
+            drawnAny = true;
             if (NodeLookup[d.data.n] == undefined) {
                 let depthClass = "depth" + dep;
                 let gclass = d3.select('.' + depthClass).size() > 0 ? d3.select('.' + depthClass) : d3.select("#root").append('g')
-                    .attr("class", depthClass)
+                    .attr("class", depthClass);
                 let g = gclass.append('g');
                 let pclass = "p-" + (p != undefined ? p : "");
                 g.attr("transform", `translate(${xoffset + d.x0},${yoffset + d.y0})`)
@@ -98,33 +97,32 @@ function drawTreemap(d1: any, links: Map<string, Set<string>>, drawDebugLines: b
                     RootNode.addGrandchild(preroutes, (new HierarchicalNode(d.data.n, d.data.v)));
                 }
             }
-
         }
     }
-
-    parentLayer.forEach(d => h1(d, depth, preroutes[preroutes.length - 1]))
-    preroutes = preroutes.concat([d1.n])
-    childrenLayer.forEach(d => h1(d, depth + 1, d1.n))
-
+    parentLayer.forEach(d => h1(d, depth, preroutes[preroutes.length - 1]));
+    preroutes = preroutes.concat([d1.n]);
+    childrenLayer.forEach(d => h1(d, depth + 1, d1.n));
     let graph = CalculateConnectivity(d1.n, padding);
     GHT.connectivityGraphs[d1.n] = graph;
-    if (drawDebugLines) DebugDrawConnectivity(graph, padding)
-
+    if (drawDebugLines)
+        DebugDrawConnectivity(graph, padding);
     //draw links whichever renders last    
-    if (drawnAny)// drawnAny, if any rects are drawn at all
+    if (drawnAny) // drawnAny, if any rects are drawn at all
         d1.children.forEach(x => {
             if (x.n in links) {
                 let dsts = links[x.n];
                 Object.keys(dsts).forEach(d => {
-                    if (NodeLookup[d] != undefined) {
-                        let direction = dsts[d]
-                        if (direction) DrawLinks(x.n, d)
-                        else DrawLinks(d, x.n)
+                    if (NodeLookup[d] != undefined && NodeLookup[x.n] != undefined) {
+                        let direction = dsts[d];
+                        if (direction)
+                            DrawLinks(x.n, d);
+                        else
+                            DrawLinks(d, x.n);
                     }
-                })
+                });
             }
-        })
-    return drawnAny
+        });
+    return drawnAny;
 }
 
 function createDefaultColorScheme(node) {
