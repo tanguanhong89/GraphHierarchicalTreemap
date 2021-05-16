@@ -93,15 +93,18 @@ function drawTreemap(d1, links, drawDebugLines, preroutes) {
                     .style("width", (d.x1 - d.x0) + "px")
                     .style("height", (d.y1 - d.y0) + "px");
                 if (d.data.n != 'root') {
+                    rect.on("mouseover", mouseover)
+                        .on("mousemove", mousemove)
+                        .on("mouseleave", mouseleave);
                     rect.style("fill", GHT.coloring.rect(preroutes.length > 1 ? preroutes[1] : d.data.n)(dep));
                     RootNode.addGrandchild(preroutes, (new HierarchicalNode(d.data.n, d.data.v)));
                 }
             }
         }
     }
-    parentLayer.forEach(d => h1(d, depth, preroutes[preroutes.length - 1]));
+    parentLayer.forEach(d => h1(d, depth, preroutes.join('.')));
     preroutes = preroutes.concat([d1.n]);
-    childrenLayer.forEach(d => h1(d, depth + 1, d1.n));
+    childrenLayer.forEach(d => h1(d, depth + 1, preroutes.join('.')));
     let graph = CalculateConnectivity(d1.n, padding);
     GHT.connectivityGraphs[d1.n] = graph;
     if (drawDebugLines)
@@ -187,4 +190,38 @@ function createHierarchicalTreemap(node: any, links: any, drawDebugLines = false
             })
         }
     }
+}
+
+var Tooltip = d3.select("#svg-container")
+    .append("div")
+    .style("opacity", 0)
+    .attr("class", "tooltip")
+    .style("background-color", "white")
+    .style("border", "solid")
+    .style("border-width", "2px")
+    .style("border-radius", "5px")
+    .style("padding", "5px")
+
+function mouseover(d) {
+    Tooltip.style("opacity", 1)
+
+    d3.selectAll('rect').style("opacity", 0.1)
+    d3.selectAll('line').style("stroke-opacity", 0.1)
+    d3.select(this)
+        .style("opacity", 1)
+    d3.selectAll("g[class^='p-" + NodeLookup[this.id].concat(this.id).join('\\.') + "']").selectAll('rect').style("opacity", 1)
+}
+
+function mousemove(d) {
+    Tooltip
+        .html(this.id)
+        .style("left", (d.x + 20) + "px")
+        .style("top", (d.y - 40) + "px")
+}
+
+function mouseleave(d) {
+    Tooltip
+        .style("opacity", 0)
+    d3.selectAll('rect').style("opacity", 1)
+    d3.selectAll('line').style("stroke-opacity", 1)
 }

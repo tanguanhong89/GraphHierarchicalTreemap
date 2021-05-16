@@ -1,1 +1,17 @@
+Links structure change to array of path nodes or dests. eg
+    let links = [
+        'srcA': [
+            //path 1
+            ['b','c','d',[ //branching at 4th node
+                            'e','f' 
+                        ]
+            ],          
+
+            //path 2
+            ['q','w','y']
+        ]
+    ]
+
+Remove g- groups
+Pathing optimization, reuse existing paths as much as possible(till closest node to dst, then draw new paths)
 Setup proper build scripts

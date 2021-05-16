@@ -16,7 +16,7 @@ export function CalculateConnectivity(currentID: string, padding: number): Map<s
     let snappables = new Snappables()
 
     padding = Math.round(padding / 2)
-    let grects = $(".p-" + currentID);
+    let grects = $(NodeLookup[currentID] != undefined ? ".p-" + NodeLookup[currentID].concat(currentID).join('.').replaceAll('.', '\\.') : ".p-" + currentID)
 
     function findSnap(v: number, k: string): number { //snap to either existing x's or y's
         let vlist = k == 'x' ? snappables.x : snappables.y
