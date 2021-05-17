@@ -89,6 +89,6 @@ export class HierarchicalNode {
 
 let RootNode = new HierarchicalNode('root', 0)
 
+let LinksWaitingList = new Set();
 
-
-export { GraphHierarchicalTreemap, RootNode, NodeLookup }
+export { GraphHierarchicalTreemap, RootNode, NodeLookup, LinksWaitingList }

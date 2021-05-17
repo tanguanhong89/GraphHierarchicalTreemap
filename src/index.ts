@@ -1,8 +1,8 @@
-import { HierarchicalNode, RootNode, NodeLookup, GraphHierarchicalTreemap as GHT } from './dataStructures'
+import { HierarchicalNode, RootNode, NodeLookup, GraphHierarchicalTreemap as GHT, LinksWaitingList } from './dataStructures'
 import * as d3 from 'd3'
-import { CalculateConnectivity, DebugDrawConnectivity, DrawLinks } from './connectivity';
+import { CalculateConnectivity, DebugDrawConnectivity, DrawPath } from './connectivity';
 
-function drawGraphHierarchicalTreemap(node: any, links: any, rectColoring: any, lineColoring: any, drawDebugLines = false, preroutes: Array<string>) {
+function drawGHT(node: any, links: any, rectColoring: any, lineColoring: any, drawDebugLines = false, preroutes: Array<string>) {
     if (!preroutes && node.n == 'root') {
         RootNode.name = node.n
         RootNode.value = node.v
@@ -47,7 +47,6 @@ function drawTreemap(d1, links, drawDebugLines, preroutes) {
     let width = +(o.style.width.replace("px", ""));
     let height = +(o.style.height.replace("px", ""));
     let padding = width / 30 + depth;
-
     if (!(depth in GHT.depthPadding))
         GHT.depthPadding[depth] = padding;
     else
@@ -55,7 +54,6 @@ function drawTreemap(d1, links, drawDebugLines, preroutes) {
     if (depth > 0)
         if (GHT.depthPadding[depth - 1] < GHT.depthPadding[depth])
             GHT.depthPadding[depth] = GHT.depthPadding[depth - 1] * 7 / 8;
-
     d1.v = 0;
     let treemap = (d1) => d3
         .treemap()
@@ -75,7 +73,7 @@ function drawTreemap(d1, links, drawDebugLines, preroutes) {
     let childrenLayer = dataGrp.get(1);
 
     function h1(d, dep, p) {
-        if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) { } else {
+        if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) {} else {
             drawnAny = true;
             if (NodeLookup[d.data.n] == undefined) {
                 let depthClass = "depth" + dep;
@@ -91,11 +89,12 @@ function drawTreemap(d1, links, drawDebugLines, preroutes) {
                 let rect = g.append("rect")
                     .attr("id", d.data.n)
                     .style("width", (d.x1 - d.x0) + "px")
-                    .style("height", (d.y1 - d.y0) + "px");
-                if (d.data.n != 'root') {
+                    .style("height", (d.y1 - d.y0) + "px")
+                if (d.data.n != "root")
                     rect.on("mouseover", mouseover)
-                        .on("mousemove", mousemove)
-                        .on("mouseleave", mouseleave);
+                    .on("mousemove", mousemove)
+                    .on("mouseleave", mouseleave);
+                if (d.data.n != 'root') {
                     rect.style("fill", GHT.coloring.rect(preroutes.length > 1 ? preroutes[1] : d.data.n)(dep));
                     RootNode.addGrandchild(preroutes, (new HierarchicalNode(d.data.n, d.data.v)));
                 }
@@ -112,19 +111,20 @@ function drawTreemap(d1, links, drawDebugLines, preroutes) {
     //draw links whichever renders last    
     if (drawnAny) // drawnAny, if any rects are drawn at all
         d1.children.forEach(x => {
-            if (x.n in links) {
-                let dsts = links[x.n];
-                Object.keys(dsts).forEach(d => {
-                    if (NodeLookup[d] != undefined && NodeLookup[x.n] != undefined) {
-                        let direction = dsts[d];
-                        if (direction)
-                            DrawLinks(x.n, d);
-                        else
-                            DrawLinks(d, x.n);
-                    }
-                });
-            }
-        });
+        // clear backlogs first
+        if (LinksWaitingList[x.n] != undefined)
+            LinksWaitingList[x.n].forEach(d => { // [address, ii + 1]
+                let path1 = links[d[0][0]][d[0][1]]
+                path1 = [d[0][0]].concat(path1);
+                DrawPath(path1, d[0], d[1] - 1);
+            })
+
+        if (x.n in links) {
+            let paths = links[x.n]
+            for (let pi = 0; pi < paths.length; pi++)
+                DrawPath([x.n].concat(paths[pi]), [x.n, pi], 0); //[address, i + 1]
+        }
+    });
     return drawnAny;
 }
 

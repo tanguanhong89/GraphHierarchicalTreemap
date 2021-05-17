@@ -11,6 +11,19 @@ class Snappables {
     }
 }
 
+export function DrawPath(path, address, start) {
+    // path is flattened 1D structure, no nested array due to difficulty of representing convergent relationships
+    // TODO convergent relationships
+    for (let i = start; i < path.length; i++) {
+        if (!DrawLinesFor2Points(path[i], path[i + 1])) {
+            if (LinksWaitingList[path[i + 1]] == undefined)
+                LinksWaitingList[path[i + 1]] = []
+            LinksWaitingList[path[i + 1]].push([address, i + 1])
+            break
+        }
+    }
+}
+
 export function CalculateConnectivity(currentID: string, padding: number): Map<string, Set<string>> {
     let connectivity = new Map<string, Set<string>>()
     let snappables = new Snappables()
@@ -234,7 +247,7 @@ function drawSVGLines(nodes, depth) {
     }
 }
 
-export function DrawLinks(n1, n2) {
+export function DrawLinesFor2Points(n1, n2) {
     let exitp = 0,
         enter1 = 1;
     if (n1 in GHT.drawnLinks && n2 in GHT.drawnLinks[n1])
