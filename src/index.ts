@@ -2,35 +2,17 @@ import { HierarchicalNode, RootNode, NodeLookup, GraphHierarchicalTreemap as GHT
 import * as d3 from 'd3'
 import { CalculateConnectivity, DebugDrawConnectivity, DrawPath } from './connectivity';
 
-function drawGHT(node: any, links: any, rectColoring: any, lineColoring: any, drawDebugLines = false, preroutes: Array<string>) {
+function drawGraphHierarchicalTreemap(node, links, rectColoring, lineColoring, drawDebugLines = false, preroutes) {
     if (!preroutes && node.n == 'root') {
-        RootNode.name = node.n
-        RootNode.value = node.v
-        preroutes = []
-
+        RootNode.name = node.n;
+        RootNode.value = node.v;
+        preroutes = [];
         if (!GHT.coloring.rect)
-            GHT.coloring.rect = rectColoring ? rectColoring : createDefaultColorScheme(node)
+            GHT.coloring.rect = rectColoring ? rectColoring : createDefaultColorScheme(node);
         if (!GHT.coloring.line)
-            GHT.coloring.line = lineColoring ? lineColoring : d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateSinebow)
-
-
-        //needed bidirectional because of async rendering of rects, true means src->dst, false means dst->src
-        let biDirLinks = new Map<string, Map<string, boolean>>()
-        Object.keys(links).forEach(src => {
-            if (!(src in biDirLinks)) biDirLinks[src] = new Map<string, boolean>()
-            let dsts = links[src].values()
-            while (1) {
-                let dd = dsts.next();
-                if (dd.done) break;
-                let dst = dd.value;
-                if (!(dst in biDirLinks)) biDirLinks[dst] = new Map<string, boolean>()
-                biDirLinks[src][dst] = true
-                biDirLinks[dst][src] = false
-            }
-        })
-        links = biDirLinks
+            GHT.coloring.line = lineColoring ? lineColoring : d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateSinebow);
     }
-    createHierarchicalTreemap(node, links, drawDebugLines, preroutes)
+    createHierarchicalTreemap(node, links, drawDebugLines, preroutes);
 }
 
 
@@ -167,7 +149,7 @@ function findEstimatedLargerSqrt(n: number) {
 
 function createHierarchicalTreemap(node: any, links: any, drawDebugLines = false, preroutes: Array<string>) {
     if ('c' in node) {
-        let mxV = 0, sV = 0, k = 0.1;
+        let mxV = 0, sV = 0;
         node.c.forEach(c => {
             c.v = findEstimatedLargerSqrt(c.v);
             mxV = Math.max(mxV, c.v)

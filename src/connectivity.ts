@@ -1,4 +1,4 @@
-import { Point, GraphHierarchicalTreemap as GHT } from './dataStructures'
+import { Point, GraphHierarchicalTreemap as GHT, LinksWaitingList } from './dataStructures'
 import * as d3 from 'd3'
 import { NodeLookup } from 'dataStructures'
 
@@ -189,36 +189,39 @@ export function DebugDrawConnectivity(graph, padding: number) {
     }
 }
 
-export function FindBestPath(start: string, end: string, parentName: string) {
+export function FindBestPath(start, end, parentName) {
     if (start in GHT.drawnLinks && end in GHT.drawnLinks[start])
-        return GHT.drawnLinks[start][end]
-    if (!(start in GHT.drawnLinks)) GHT.drawnLinks[start] = new Map<string, Array<string>>()
-    if (!(end in GHT.drawnLinks[start])) GHT.drawnLinks[start][end] = Array<string>()
+        return GHT.drawnLinks[start][end];
+    if (!(start in GHT.drawnLinks))
+        GHT.drawnLinks[start] = new Map();
+    if (!(end in GHT.drawnLinks[start]))
+        GHT.drawnLinks[start][end] = Array();
     let s1 = [
         [start]
-    ]
-    let covered = new Set([start])
-    if (parentName == '' || parentName == undefined) parentName = 'root'
+    ];
+    let covered = new Set([start]);
+    if (parentName == '' || parentName == undefined)
+        parentName = 'root';
     while (s1.length > 0) {
-        let path = s1.shift()
-        let lastNode = path.slice(-1)[0]
-        let neigh = []
+        let path = s1.shift();
+        let lastNode = path.slice(-1)[0];
+        let neigh = [];
         GHT.connectivityGraphs[parentName].get(lastNode).forEach(x => {
-            if (!(covered.has(x))) neigh.push(x)
-        })
+            if (!(covered.has(x)))
+                neigh.push(x);
+        });
         for (let i = 0; i < neigh.length; i++) {
-            let n = neigh[i]
+            let n = neigh[i];
             if (n == end) {
-                GHT.drawnLinks[start][end] = path.concat(n)
-                return GHT.drawnLinks[start][end]
+                GHT.drawnLinks[start][end] = path.concat(n);
+                return GHT.drawnLinks[start][end];
             }
-            covered.add(n)
-            s1.push(path.concat(n))
+            covered.add(n);
+            s1.push(path.concat(n));
         }
     }
-    throw ("No path found, please increase pixelCorrection")
+    throw ("No path found, please increase pixelCorrection");
 }
-
 function drawSVGLines(nodes, depth) {
     const layer = d3.select('.depth' + (depth - 1));
     if (!(depth in GHT.drawnLines))
@@ -247,14 +250,14 @@ function drawSVGLines(nodes, depth) {
     }
 }
 
-export function DrawLinesFor2Points(n1, n2) {
+function DrawLinesFor2Points(n1, n2) {
+    if (NodeLookup[n1] == undefined || NodeLookup[n2] == undefined) return false
     let exitp = 0,
         enter1 = 1;
     if (n1 in GHT.drawnLinks && n2 in GHT.drawnLinks[n1])
         return GHT.drawnLinks[n1][n2];
     if (n1 == n2)
         return [];
-
     let n1s = NodeLookup[n1].concat([n1]);
     let n2s = NodeLookup[n2].concat([n2]);
     let n1ss = n1s.join("."),
@@ -269,7 +272,6 @@ export function DrawLinesFor2Points(n1, n2) {
     let n1level = n1s.length;
     let n2level = n2s.length;
     let maxDrawDepth = Math.max(n1level, n2level);
-
     let maxCommonLevel = Math.min(n1level, n2level);
     let baseNodes = [];
     let commonPLvl = 0;
@@ -321,4 +323,5 @@ export function DrawLinesFor2Points(n1, n2) {
         return baseNodes;
     }
     console.log('Bug: diff parents');
+    return false
 }
