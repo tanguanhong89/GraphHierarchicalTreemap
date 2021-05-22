@@ -1,22 +1,23 @@
-import { HierarchicalNode, RootNode, NodeLookup, GraphHierarchicalTreemap as GHT, LinksWaitingList } from './dataStructures'
+import { HierarchicalNode, RootNode, GraphHierarchicalTreemap as GHT, LinksWaitingList } from './dataStructures'
 import * as d3 from 'd3'
-import { CalculateConnectivity, DebugDrawConnectivity, DrawPath } from './connectivity';
+import { CalculateConnectivity, DebugDrawConnectivity, DrawPath, GetStrokeIDsFromNodePath } from './connectivity';
 
-function drawGraphHierarchicalTreemap(node, links, rectColoring, lineColoring, drawDebugLines = false, preroutes) {
-    if (!preroutes && node.n == 'root') {
-        RootNode.name = node.n;
-        RootNode.value = node.v;
+function drawGraphHierarchicalTreemap(nodes, links, rectColoring, lineColoring, drawDebugLines = false, preroutes) {
+    if (!preroutes && nodes.n == 'root') {
+        RootNode.name = nodes.n;
+        RootNode.value = nodes.v;
         preroutes = [];
         if (!GHT.coloring.rect)
-            GHT.coloring.rect = rectColoring ? rectColoring : createDefaultColorScheme(node);
+            GHT.coloring.rect = rectColoring ? rectColoring : createDefaultColorScheme(nodes);
         if (!GHT.coloring.line)
             GHT.coloring.line = lineColoring ? lineColoring : d3.scaleSequential([GHT.maxDepth, 0], d3.interpolateSinebow);
     }
-    createHierarchicalTreemap(node, links, drawDebugLines, preroutes);
+    GHT.nodes = nodes, GHT.links = links
+    createHierarchicalTreemap(nodes, drawDebugLines, preroutes);
 }
 
 
-function drawTreemap(d1, links, drawDebugLines, preroutes) {
+function drawTreemap(d1, drawDebugLines, preroutes) {
     let drawnAny = false;
     let depth = preroutes.length;
     if (d1.children.length == 0)
@@ -55,9 +56,9 @@ function drawTreemap(d1, links, drawDebugLines, preroutes) {
     let childrenLayer = dataGrp.get(1);
 
     function h1(d, dep, p) {
-        if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) {} else {
+        if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) { } else {
             drawnAny = true;
-            if (NodeLookup[d.data.n] == undefined) {
+            if (GHT.nodeAddressLookup[d.data.n] == undefined) {
                 let depthClass = "depth" + dep;
                 let gclass = d3.select('.' + depthClass).size() > 0 ? d3.select('.' + depthClass) : d3.select("#root").append('g')
                     .attr("class", depthClass);
@@ -74,8 +75,8 @@ function drawTreemap(d1, links, drawDebugLines, preroutes) {
                     .style("height", (d.y1 - d.y0) + "px")
                 if (d.data.n != "root")
                     rect.on("mouseover", mouseover)
-                    .on("mousemove", mousemove)
-                    .on("mouseleave", mouseleave);
+                        .on("mousemove", mousemove)
+                        .on("mouseleave", mouseleave);
                 if (d.data.n != 'root') {
                     rect.style("fill", GHT.coloring.rect(preroutes.length > 1 ? preroutes[1] : d.data.n)(dep));
                     RootNode.addGrandchild(preroutes, (new HierarchicalNode(d.data.n, d.data.v)));
@@ -83,9 +84,9 @@ function drawTreemap(d1, links, drawDebugLines, preroutes) {
             }
         }
     }
-    parentLayer.forEach(d => h1(d, depth, preroutes.join('.')));
+    parentLayer.forEach(d => h1(d, depth, preroutes.join('-')));
     preroutes = preroutes.concat([d1.n]);
-    childrenLayer.forEach(d => h1(d, depth + 1, preroutes.join('.')));
+    childrenLayer.forEach(d => h1(d, depth + 1, preroutes.join('-')));
     let graph = CalculateConnectivity(d1.n, padding);
     GHT.connectivityGraphs[d1.n] = graph;
     if (drawDebugLines)
@@ -93,20 +94,29 @@ function drawTreemap(d1, links, drawDebugLines, preroutes) {
     //draw links whichever renders last    
     if (drawnAny) // drawnAny, if any rects are drawn at all
         d1.children.forEach(x => {
-        // clear backlogs first
-        if (LinksWaitingList[x.n] != undefined)
-            LinksWaitingList[x.n].forEach(d => { // [address, ii + 1]
-                let path1 = links[d[0][0]][d[0][1]]
-                path1 = [d[0][0]].concat(path1);
-                DrawPath(path1, d[0], d[1] - 1);
-            })
+            // clear backlogs first
+            if (LinksWaitingList[x.n] != undefined)
+                LinksWaitingList[x.n].forEach(d => { // [address, ii + 1]
+                    let path1 = GHT.links[d[0][0]][d[0][1]]
+                    path1 = [d[0][0]].concat(path1);
+                    DrawPath(path1, d[0], d[1] - 1);
+                })
 
-        if (x.n in links) {
-            let paths = links[x.n]
-            for (let pi = 0; pi < paths.length; pi++)
-                DrawPath([x.n].concat(paths[pi]), [x.n, pi], 0); //[address, i + 1]
-        }
-    });
+            if (x.n in GHT.links) {
+                let paths = GHT.links[x.n]
+                if (GHT.nodePathIndex[x.n] == undefined)
+                    GHT.nodePathIndex[x.n] = []
+                for (let pi = 0; pi < paths.length; pi++) {
+                    GHT.nodePathIndex[x.n].push([x.n, pi])
+                    paths[pi].forEach(n => {
+                        if (GHT.nodePathIndex[n] == undefined)
+                            GHT.nodePathIndex[n] = []
+                        GHT.nodePathIndex[n].push([x.n, pi])
+                    })
+                    DrawPath([x.n].concat(paths[pi]), [x.n, pi], 0);
+                }
+            }
+        });
     return drawnAny;
 }
 
@@ -147,7 +157,7 @@ function findEstimatedLargerSqrt(n: number) {
 }
 
 
-function createHierarchicalTreemap(node: any, links: any, drawDebugLines = false, preroutes: Array<string>) {
+function createHierarchicalTreemap(node: any, drawDebugLines = false, preroutes: Array<string>) {
     if ('c' in node) {
         let mxV = 0, sV = 0;
         node.c.forEach(c => {
@@ -163,11 +173,11 @@ function createHierarchicalTreemap(node: any, links: any, drawDebugLines = false
             sV += c.v * mxV
         })
         currentNode.v = sV
-        if (drawTreemap(currentNode, links, drawDebugLines, preroutes)) {
+        if (drawTreemap(currentNode, drawDebugLines, preroutes)) {
             preroutes = preroutes.concat(node.n)
             node.c.forEach(w => {
                 setTimeout(() => {
-                    createHierarchicalTreemap(w, links, drawDebugLines, preroutes)
+                    createHierarchicalTreemap(w, drawDebugLines, preroutes)
                 }, 0)
             })
         }
@@ -189,9 +199,24 @@ function mouseover(d) {
 
     d3.selectAll('rect').style("opacity", 0.1)
     d3.selectAll('line').style("stroke-opacity", 0.1)
-    d3.select(this)
-        .style("opacity", 1)
-    d3.selectAll("g[class^='p-" + NodeLookup[this.id].concat(this.id).join('\\.') + "']").selectAll('rect').style("opacity", 1)
+    d3.select(this).style("opacity", 1)
+    d3.selectAll("g[class^='p-" + GHT.nodeAddressLookup[this.id].concat(this.id).join('-') + "']").selectAll('rect').style("opacity", 1)
+    if (GHT.nodePathIndex[this.id] != undefined) {
+        let pathIndices = GHT.nodePathIndex[this.id]
+        pathIndices.forEach(pathIndex => {
+            let nodePath = [pathIndex[0]].concat(GHT.links[pathIndex[0]][pathIndex[1]])
+            for (let i = 0; i < nodePath.length - 1; i++) {
+                d3.select('#' + nodePath[i]).style("opacity", 1), d3.select('#' + nodePath[i + 1]).style("opacity", 1)
+                //let depth = Math.max(GHT.nodeAddressLookup[nodePath[i]].length, GHT.nodeAddressLookup[nodePath[i + 1]].length)
+                let strokePath = GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]][nodePath[i + 1]]
+                let strokeIDs = GetStrokeIDsFromNodePath(strokePath)
+                strokeIDs.forEach(s => {
+                    //d3.selectAll('.st-' + s + "[depth=\"" + depth + "\"]").style("stroke-opacity", 1)
+                    d3.selectAll('.st-' + s).style("stroke-opacity", 1)
+                })
+            }
+        })
+    }
 }
 
 function mousemove(d) {
@@ -206,4 +231,8 @@ function mouseleave(d) {
         .style("opacity", 0)
     d3.selectAll('rect').style("opacity", 1)
     d3.selectAll('line').style("stroke-opacity", 1)
+}
+
+function applyDirectionalMovementToStroke(s){
+
 }

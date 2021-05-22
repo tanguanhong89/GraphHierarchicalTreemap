@@ -5,10 +5,17 @@ let GraphHierarchicalTreemap = {
     xPortCount: 1, // no point using beyond 1. Path search algo only uses first of each
     yPortCount: 1,
 
+    nodes: {},
+    links: {},
+
     connectivityGraphs: new Map<string, Map<string, Set<string>>>(),
     rectPorts: new Map<string, Point[]>(),// IO ports of each rect
-    drawnLines: new Map<string, Set<string>>(),
-    drawnLinks: new Map<string, Map<string, Array<string>>>(),//src -> dsts (each point xy)
+    drawnStokesForDepth: new Map<string, Map<string, string>>(), //left or up first
+    drawnNodesOfSameDepth: new Map<string, Map<string, Array<string>>>(),//src -> dsts (each point xy)
+    drawnNodesBetween2ImmediateNodeIDs: new Map<string, {}>(),
+
+    nodeAddressLookup: new Map<string, string[]>(),
+    nodePathIndex: new Map<string, Array<any>>(),
 
     depthPadding: new Map<number, number>(),
 
@@ -17,9 +24,6 @@ let GraphHierarchicalTreemap = {
         rect: undefined
     }
 }
-
-let NodeLookup = new Map<string, string[]>();
-
 
 export class Point {
     x: number
@@ -59,7 +63,7 @@ export class HierarchicalNode {
 
     addGrandchild(routes: Array<string>, child: HierarchicalNode) {
         this.find(routes).addChild(child)
-        NodeLookup[child.name] = routes
+        GraphHierarchicalTreemap.nodeAddressLookup[child.name] = routes
     }
 
     find(routes: Array<string>): HierarchicalNode | undefined {
@@ -91,4 +95,4 @@ let RootNode = new HierarchicalNode('root', 0)
 
 let LinksWaitingList = new Set();
 
-export { GraphHierarchicalTreemap, RootNode, NodeLookup, LinksWaitingList }
+export { GraphHierarchicalTreemap, RootNode, LinksWaitingList }
