@@ -10,6 +10,14 @@ class Snappables {
     }
 }
 
+export function Interpolate(start: number, end: number, splitCnt: number) {
+    let v = []
+    let interval = (end - start) / (splitCnt + 1)
+    for (let i = 0; i < splitCnt + 1; i++) v.push(Math.round(start + interval * i))
+    v.push(end)
+    return v
+}
+
 export function DrawPath(path, address, start) {
     // path is flattened 1D structure, no nested array due to difficulty of representing convergent relationships
     // TODO convergent relationships
@@ -49,13 +57,7 @@ export function CalculateConnectivity(currentID: string, padding: number): Map<s
         connectivity.get(bk)?.add(ak)
     }
 
-    function interpolate(start: number, end: number, splitCnt: number) {
-        let v = []
-        let interval = (end - start) / (splitCnt + 1)
-        for (let i = 0; i < splitCnt + 1; i++) v.push(Math.round(start + interval * i))
-        v.push(end)
-        return v
-    }
+
 
     let connectivity = new Map<string, Set<string>>()
     let snappables = new Snappables()
@@ -131,8 +133,8 @@ export function CalculateConnectivity(currentID: string, padding: number): Map<s
         let x2 = findSnap(x1 + width, 'x')
         let y2 = findSnap(y1 + height, 'y')
 
-        let xPorts = interpolate(x1, x2, GHT.xPortCount)
-        let yPorts = interpolate(y1, y2, GHT.yPortCount)
+        let xPorts = Interpolate(x1, x2, GHT.xPortCount)
+        let yPorts = Interpolate(y1, y2, GHT.yPortCount)
 
         for (let i = 0; i < xPorts.length; i++) {
             if (i > 0 && i < xPorts.length - 1) {

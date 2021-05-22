@@ -1,6 +1,6 @@
 import { HierarchicalNode, RootNode, GraphHierarchicalTreemap as GHT, LinksWaitingList } from './dataStructures'
 import * as d3 from 'd3'
-import { CalculateConnectivity, DebugDrawConnectivity, DrawPath, GetStrokeIDsFromNodePath } from './connectivity';
+import { CalculateConnectivity, DebugDrawConnectivity, DrawPath, GetStrokeIDsFromNodePath, Interpolate } from './connectivity';
 
 function drawGraphHierarchicalTreemap(nodes, links, rectColoring, lineColoring, drawDebugLines = false, preroutes) {
     if (!preroutes && nodes.n == 'root') {
@@ -233,6 +233,17 @@ function mouseleave(d) {
     d3.selectAll('line').style("stroke-opacity", 1)
 }
 
-function applyDirectionalMovementToStroke(s){
+function applyDirectionalMovementToStroke(s) {
+    let intervalD = 500
+    let intervalN = []
+    let startend = s.split('-').map(ss => { ss.split('_').map(sss => +(sss)) })
+    if (startend[0][0] != startend[1][0]) {
+        let nCnt = (startend[0][0] - startend[1][0]) / intervalD
+        Interpolate(startend[0][0], startend[1][0], Math.max(1,nCnt))
+    } else {
+        let nCnt = (startend[0][1] - startend[1][1]) / intervalD
+        Interpolate(startend[0][1], startend[1][1], Math.max(1,nCnt))
+    }
 
+    $('.st-' + s)[0] //lowest depth
 }
