@@ -22,7 +22,10 @@ let GraphHierarchicalTreemap = {
     coloring: {
         line: undefined,
         rect: undefined
-    }
+    },
+
+    mouseoverState: false,
+    tcircles:[],
 }
 
 export class Point {

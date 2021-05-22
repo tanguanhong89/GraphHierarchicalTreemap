@@ -1,6 +1,6 @@
 import { HierarchicalNode, RootNode, GraphHierarchicalTreemap as GHT, LinksWaitingList } from './dataStructures'
 import * as d3 from 'd3'
-import { CalculateConnectivity, DebugDrawConnectivity, DrawPath, GetStrokeIDsFromNodePath, Interpolate } from './connectivity';
+import { CalculateConnectivity, DebugDrawConnectivity, DrawPath, GetStrokeIDsFromNodePath } from './connectivity';
 
 function drawGraphHierarchicalTreemap(nodes, links, rectColoring, lineColoring, drawDebugLines = false, preroutes) {
     if (!preroutes && nodes.n == 'root') {
@@ -56,7 +56,7 @@ function drawTreemap(d1, drawDebugLines, preroutes) {
     let childrenLayer = dataGrp.get(1);
 
     function h1(d, dep, p) {
-        if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) { } else {
+        if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) {} else {
             drawnAny = true;
             if (GHT.nodeAddressLookup[d.data.n] == undefined) {
                 let depthClass = "depth" + dep;
@@ -72,11 +72,11 @@ function drawTreemap(d1, drawDebugLines, preroutes) {
                 let rect = g.append("rect")
                     .attr("id", d.data.n)
                     .style("width", (d.x1 - d.x0) + "px")
-                    .style("height", (d.y1 - d.y0) + "px")
+                    .style("height", (d.y1 - d.y0) + "px");
                 if (d.data.n != "root")
                     rect.on("mouseover", mouseover)
-                        .on("mousemove", mousemove)
-                        .on("mouseleave", mouseleave);
+                    .on("mousemove", mousemove)
+                    .on("mouseleave", mouseleave);
                 if (d.data.n != 'root') {
                     rect.style("fill", GHT.coloring.rect(preroutes.length > 1 ? preroutes[1] : d.data.n)(dep));
                     RootNode.addGrandchild(preroutes, (new HierarchicalNode(d.data.n, d.data.v)));
@@ -184,66 +184,84 @@ function createHierarchicalTreemap(node: any, drawDebugLines = false, preroutes:
     }
 }
 
-var Tooltip = d3.select("#svg-container")
-    .append("div")
-    .style("opacity", 0)
-    .attr("class", "tooltip")
-    .style("background-color", "white")
-    .style("border", "solid")
-    .style("border-width", "2px")
-    .style("border-radius", "5px")
-    .style("padding", "5px")
+var Tooltip = createTooltip()
+
+function createTooltip() {
+    return d3.select("#svg-container")
+        .append("div")
+        .style("opacity", 0)
+        .attr("class", "tooltip")
+        .style("background-color", "white")
+        .style("border", "solid")
+        .style("border-width", "2px")
+        .style("border-radius", "5px")
+        .style("padding", "5px");
+}
 
 function mouseover(d) {
-    Tooltip.style("opacity", 1)
-
-    d3.selectAll('rect').style("opacity", 0.1)
-    d3.selectAll('line').style("stroke-opacity", 0.1)
-    d3.select(this).style("opacity", 1)
-    d3.selectAll("g[class^='p-" + GHT.nodeAddressLookup[this.id].concat(this.id).join('-') + "']").selectAll('rect').style("opacity", 1)
-    if (GHT.nodePathIndex[this.id] != undefined) {
-        let pathIndices = GHT.nodePathIndex[this.id]
-        pathIndices.forEach(pathIndex => {
-            let nodePath = [pathIndex[0]].concat(GHT.links[pathIndex[0]][pathIndex[1]])
-            for (let i = 0; i < nodePath.length - 1; i++) {
-                d3.select('#' + nodePath[i]).style("opacity", 1), d3.select('#' + nodePath[i + 1]).style("opacity", 1)
-                //let depth = Math.max(GHT.nodeAddressLookup[nodePath[i]].length, GHT.nodeAddressLookup[nodePath[i + 1]].length)
-                let strokePath = GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]][nodePath[i + 1]]
-                let strokeIDs = GetStrokeIDsFromNodePath(strokePath)
-                strokeIDs.forEach(s => {
-                    //d3.selectAll('.st-' + s + "[depth=\"" + depth + "\"]").style("stroke-opacity", 1)
-                    d3.selectAll('.st-' + s).style("stroke-opacity", 1)
-                })
-            }
-        })
+    if (!GHT.mouseoverState) {
+        GHT.mouseoverState = true
+        Tooltip.style("opacity", 1);
+        d3.selectAll('rect').style("opacity", 0.1);
+        d3.selectAll('line').style("stroke-opacity", 0.1);
+        d3.select(this).style("opacity", 1);
+        d3.selectAll("g[class^='p-" + GHT.nodeAddressLookup[this.id].concat(this.id).join('-') + "']").selectAll('rect').style("opacity", 1);
+        if (GHT.nodePathIndex[this.id] != undefined) {
+            let pathIndices = GHT.nodePathIndex[this.id];
+            pathIndices.forEach(pathIndex => {
+                let nodePath = [pathIndex[0]].concat(GHT.links[pathIndex[0]][pathIndex[1]]);
+                for (let i = 0; i < nodePath.length - 1; i++) {
+                    d3.select('#' + nodePath[i]).style("opacity", 1), d3.select('#' + nodePath[i + 1]).style("opacity", 1);
+                    //let depth = Math.max(GHT.nodeAddressLookup[nodePath[i]].length, GHT.nodeAddressLookup[nodePath[i + 1]].length)
+                    let strokePath = GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]][nodePath[i + 1]];
+                    let strokeIDs = GetStrokeIDsFromNodePath(strokePath);
+                    strokeIDs.forEach(s => {
+                        //d3.selectAll('.st-' + s + "[depth=\"" + depth + "\"]").style("stroke-opacity", 1)
+                        d3.selectAll('.st-' + s).style("stroke-opacity", 1);
+                        GHT.tcircles.push(applyDirectionalMovementToStroke(s))
+                    });
+                }
+            });
+        }
     }
+
 }
 
 function mousemove(d) {
-    Tooltip
-        .html(this.id)
+    Tooltip.html(this.id)
         .style("left", (d.x + 20) + "px")
-        .style("top", (d.y - 40) + "px")
+        .style("top", (d.y - 40) + "px");
 }
 
 function mouseleave(d) {
-    Tooltip
-        .style("opacity", 0)
-    d3.selectAll('rect').style("opacity", 1)
-    d3.selectAll('line').style("stroke-opacity", 1)
+    GHT.mouseoverState = false
+    while (GHT.tcircles.length > 0)
+        clearInterval(GHT.tcircles.shift())
+    d3.selectAll('.ght-tcircle').remove()
+    Tooltip.style("opacity", 0);
+    d3.selectAll('rect').style("opacity", 1);
+    d3.selectAll('line').style("stroke-opacity", 1);
 }
 
-function applyDirectionalMovementToStroke(s) {
-    let intervalD = 500
-    let intervalN = []
-    let startend = s.split('-').map(ss => { ss.split('_').map(sss => +(sss)) })
-    if (startend[0][0] != startend[1][0]) {
-        let nCnt = (startend[0][0] - startend[1][0]) / intervalD
-        Interpolate(startend[0][0], startend[1][0], Math.max(1,nCnt))
-    } else {
-        let nCnt = (startend[0][1] - startend[1][1]) / intervalD
-        Interpolate(startend[0][1], startend[1][1], Math.max(1,nCnt))
-    }
 
-    $('.st-' + s)[0] //lowest depth
+function applyDirectionalMovementToStroke(s) {
+    let tinterval = 1000
+    let startend = s.split('-').map(x => x.split('_').map(xx => +(xx)))
+
+    let h1 = function() {
+        var t = d3.transition()
+            .duration(tinterval)
+            .ease(d3.easeLinear);
+        d3.select('svg').append('circle').attr('class', 'ght-tcircle')
+            .attr('cx', startend[0][0])
+            .attr('cy', startend[0][1])
+            .attr('r', 100)
+            .attr('fill', 'red')
+            .transition(t)
+            .attr('cx', startend[1][0])
+            .attr('cy', startend[1][1])
+            .remove()
+    }
+    h1()
+    return setInterval(() => { h1() }, tinterval)
 }
