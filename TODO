@@ -1,26 +1,4 @@
-U turns
-Apparently, calculated links are layered and repeated
-    0: "24800_12000"
-    1: "25161_12000"
-    2: "25161_10330"
-    3: "25161_8656"
-    4: "27322_8656"
-    5: "29482_8656"
-    6: "29482_6983"
-    7: "29482_5309"
-    8: "29482_3635" <----only neigh of 5309
-    9: "29482_1961" <----
-    10: "29482_4144" <-----
-    11: "29843_4144"
-        let nodes = findBestPath(appendPort, newIDPort, appendID, i);
-        appendPort
-        "24800_12000"
-        newIDPort
-        "29843_4144"
-        appendID
-        "b"
-
-
+Possible failing to find path if fully blocked
 
 Remove g- groups
 Pathing optimization, reuse existing paths as much as possible(till closest node to dst, then draw new paths)

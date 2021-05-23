@@ -10,6 +10,11 @@ class Snappables {
     }
 }
 
+export function GetRandomColor(){
+    let c1 = function() { return Math.floor(Math.random() * 254) }
+    return ['rgb(', c1() + ',', c1() + ',', c1(), ')'].join('')
+}
+
 export function Interpolate(start: number, end: number, splitCnt: number) {
     let v = []
     let interval = (end - start) / (splitCnt + 1)
@@ -57,12 +62,12 @@ export function CalculateConnectivity(currentID, padding, drawDebugLines) {
             connectivity.get(ak).add(bk)
             connectivity.get(bk).add(ak)
             if (drawDebugLines) {
-                let c1 = function() { return Math.floor(Math.random() * 254) }
+                
                 const root = d3.select('#ght-root');
                 ak = ak.split('_').map(x => +(x))
                 bk = bk.split('_').map(x => +(x))
                 root.append('line')
-                    .style("stroke", ['rgb(', c1() + ',', c1() + ',', c1(), ')'].join(''))
+                    .style("stroke", GetRandomColor())
                     .style("stroke-width", padding / 2)
                     .style("stroke-opacity", 1)
                     .attr("class", "st-" + ak + '-' + bk)
@@ -236,7 +241,8 @@ export function GetStrokeIDsFromNodePath(nodes) {
     return sid
 }
 
-function findBestPath(start, end, parentName, depth) {
+function findBestPath(start, end, parentName, depth, endSide) {
+    // endSide: 0 1 2 3, up down left right
     if (start in GHT.drawnNodesOfSameDepth && end in GHT.drawnNodesOfSameDepth[start])
         return GHT.drawnNodesOfSameDepth[start][end];
     if (!(start in GHT.drawnNodesOfSameDepth))
@@ -255,14 +261,24 @@ function findBestPath(start, end, parentName, depth) {
         let neigh = [];
         GHT.connectivityGraphs[parentName].get(lastPoint).forEach(x => {
             if (!(covered.has(x))) {
-                let k1k2 = _getK1K2(lastPoint, x)
+                let k1k2 = _getK1K2(lastPoint, x);
                 if (GHT.drawnStokesForDepth[depth] != undefined)
                     if (GHT.drawnStokesForDepth[depth][k1k2[0]] != undefined)
                         if (GHT.drawnStokesForDepth[depth][k1k2[0]][k1k2[1]] != undefined) {
-                            if (GHT.drawnStokesForDepth[depth][k1k2[0]][k1k2[1]] != k1k2[2])//opp direction, rejectpoint
-                                return
+                            if (GHT.drawnStokesForDepth[depth][k1k2[0]][k1k2[1]] != k1k2[2]) //opp direction, rejectpoint
+                                return;
                         }
-                neigh.push(x)
+                let x1y1 = lastPoint.split('_').map(x => +(x))
+                let x2y2 = x.split('_').map(x => +(x))
+                if (endSide == 0 && x2y2[1] <= x1y1[1]) //up
+                    neigh.push(x)
+                else if (endSide == 1 && x2y2[1] >= x1y1[1]) //down
+                    neigh.push(x)
+                else if (endSide == 2 && x2y2[0] <= x1y1[0]) //left
+                    neigh.push(x)
+                else if (endSide == 3 && x2y2[0] >= x1y1[0]) //right
+                    neigh.push(x)
+                neigh.push(x);
             }
         });
         for (let i = 0; i < neigh.length; i++) {
@@ -275,7 +291,7 @@ function findBestPath(start, end, parentName, depth) {
             s1.push(path.concat(n));
         }
     }
-    return false
+    return false;
 }
 
 let _getK1K2 = function (n1, n2) {//left, top first
@@ -332,12 +348,16 @@ function DrawLinesFor2NodeIDs(n1, n2) {
     if (GHT.drawnNodesBetween2ImmediateNodeIDs[n1]) {
         if (GHT.drawnNodesBetween2ImmediateNodeIDs[n1][n2])
             return GHT.drawnNodesBetween2ImmediateNodeIDs[n1][n2];
-    } else
-        GHT.drawnNodesBetween2ImmediateNodeIDs[n1] = {};
+    }
+
     if (n1 in GHT.drawnNodesOfSameDepth && n2 in GHT.drawnNodesOfSameDepth[n1])
         return GHT.drawnNodesOfSameDepth[n1][n2];
     if (n1 == n2)
         return [];
+    if (GHT.drawnNodesBetween2ImmediateNodeIDs[n1] == undefined)
+        GHT.drawnNodesBetween2ImmediateNodeIDs[n1] = {};
+    if (GHT.drawnNodesBetween2ImmediateNodeIDs[n2] == undefined)
+        GHT.drawnNodesBetween2ImmediateNodeIDs[n2] = {};
     let n1s = GHT.nodeAddressLookup[n1].concat([n1]);
     let n2s = GHT.nodeAddressLookup[n2].concat([n2]);
     let n1level = n1s.length;
@@ -352,7 +372,9 @@ function DrawLinesFor2NodeIDs(n1, n2) {
     let n1ss = n1s.join("."),
         n2ss = n2s.join(".");
     let h2 = function(par, child, k) {
-        let n1 = findBestPath(h1(child[maxCommonLevel], k), h1(par[maxCommonLevel - 1], k), par[maxCommonLevel - 1], maxCommonLevel);
+        let a = h1(child[maxCommonLevel], k),
+            b = h1(par[maxCommonLevel - 1], k)
+        let n1 = findBestPath(a, b, par[maxCommonLevel - 1], maxCommonLevel, b);
         if (n1)
             if (n1.length < baseNodes.length && n1.length > 0 || baseNodes.length == 0)
                 baseNodes = n1, enter1 = k, exit1 = k;
@@ -363,19 +385,18 @@ function DrawLinesFor2NodeIDs(n1, n2) {
         h2(n1s.slice(0, -1), n1s, 2);
         h2(n1s.slice(0, -1), n1s, 3);
         _drawLinesSameDepth(baseNodes, n1s.length);
-
         let a = n1s,
             b = n1s.slice(0, -1);
-        let _baseNodes = baseNodes
+        let _baseNodes = baseNodes;
         while (b.join('.') != n2ss) {
-            baseNodes = []
+            baseNodes = [];
             a = b;
             b = b.slice(0, -1);
             h2(b, a, enter1);
             _drawLinesSameDepth(baseNodes, a.length);
-            _baseNodes.concat(baseNodes)
+            _baseNodes.concat(baseNodes);
         }
-        baseNodes = _baseNodes
+        baseNodes = _baseNodes;
         GHT.drawnNodesBetween2ImmediateNodeIDs[n1][n2] = baseNodes;
         return baseNodes;
     } else if (n2ss.startsWith(n1ss)) {
@@ -384,19 +405,18 @@ function DrawLinesFor2NodeIDs(n1, n2) {
         h2(n2s.slice(0, -1), n2s, 2);
         h2(n2s.slice(0, -1), n2s, 3);
         _drawLinesSameDepth(baseNodes, n2s.length);
-
         let a = n2s,
             b = n2s.slice(0, -1);
-        let _baseNodes = baseNodes
+        let _baseNodes = baseNodes;
         while (b.join('.') != n1ss) {
-            baseNodes = []
+            baseNodes = [];
             a = b;
             b = b.slice(0, -1);
             h2(b, a, enter1);
             _drawLinesSameDepth(baseNodes, a.length);
-            _baseNodes.concat(baseNodes)
+            _baseNodes.concat(baseNodes);
         }
-        baseNodes = _baseNodes
+        baseNodes = _baseNodes;
         GHT.drawnNodesBetween2ImmediateNodeIDs[n2][n1] = baseNodes;
         return baseNodes;
     } else {
@@ -405,7 +425,7 @@ function DrawLinesFor2NodeIDs(n1, n2) {
             let n2p = n2s[lvl];
             if (n1p != n2p || lvl == maxCommonLevel) {
                 let h2 = function(a, b) {
-                    let _t = findBestPath(h1(n1p, a), h1(n2p, b), n1s[lvl - 1], lvl);
+                    let _t = findBestPath(h1(n1p, a), h1(n2p, b), n1s[lvl - 1], lvl, b);
                     if (_t)
                         if (_t.length < baseNodes.length && _t.length > 0)
                             baseNodes = _t, exit1 = a, enter1 = b;
@@ -439,7 +459,7 @@ function DrawLinesFor2NodeIDs(n1, n2) {
                 if (prependPort != baseNodes[0]) {
                     throw ("Mismatched ports");
                 }
-                let nodes = findBestPath(newIDPort, prependPort, prependID, i);
+                let nodes = findBestPath(newIDPort, prependPort, prependID, i, exit1);
                 if (nodes) {
                     for (let ii = i; ii < maxDrawDepth; ii++)
                         _drawLinesSameDepth(nodes, ii);
@@ -456,7 +476,7 @@ function DrawLinesFor2NodeIDs(n1, n2) {
                 if (appendPort != baseNodes[baseNodes.length - 1]) {
                     throw ("Mismatched ports");
                 }
-                let nodes = findBestPath(appendPort, newIDPort, appendID, i);
+                let nodes = findBestPath(appendPort, newIDPort, appendID, i, enter1);
                 if (nodes) {
                     for (let ii = i; ii < maxDrawDepth; ii++)
                         _drawLinesSameDepth(nodes, ii);
@@ -469,7 +489,6 @@ function DrawLinesFor2NodeIDs(n1, n2) {
             return baseNodes;
         }
     }
-
     console.log('Bug: diff parents');
     return false;
 }

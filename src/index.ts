@@ -87,7 +87,7 @@ function drawTreemap(d1, drawDebugLines, preroutes) {
     parentLayer.forEach(d => h1(d, depth, preroutes.join('-')));
     preroutes = preroutes.concat([d1.n]);
     childrenLayer.forEach(d => h1(d, depth + 1, preroutes.join('-')));
-    let graph = CalculateConnectivity(d1.n, padding,drawDebugLines);
+    let graph = CalculateConnectivity(d1.n, padding, drawDebugLines);
     GHT.connectivityGraphs[d1.n] = graph;
     if (drawDebugLines)
         DebugDrawConnectivity(graph, padding);
@@ -200,14 +200,13 @@ function createTooltip() {
 
 function mouseover(d) {
     if (!GHT.mouseoverState) {
-        let thisID=this.id.substr(4);
-        GHT.mouseoverState = true
+        let thisID = this.id.substr(4);
+        GHT.mouseoverState = true;
         Tooltip.style("opacity", 1);
-        Tooltip.html(thisID)
+        Tooltip.html(thisID);
         d3.selectAll('rect').style("opacity", 0.1);
         d3.selectAll('line').style("stroke-opacity", 0.1);
         d3.select(this).style("opacity", 1);
-        
         d3.selectAll("g[class^='p-" + GHT.nodeAddressLookup[thisID].concat(thisID).join('-') + "']").selectAll('rect').style("opacity", 1);
         if (GHT.nodePathIndex[thisID] != undefined) {
             let pathIndices = GHT.nodePathIndex[thisID];
@@ -215,20 +214,27 @@ function mouseover(d) {
                 let nodePath = [pathIndex[0]].concat(GHT.links[pathIndex[0]][pathIndex[1]]);
                 for (let i = 0; i < nodePath.length - 1; i++) {
                     d3.select('#ght-' + nodePath[i]).style("opacity", 1), d3.select('#ght-' + nodePath[i + 1]).style("opacity", 1);
-                    //let depth = Math.max(GHT.nodeAddressLookup[nodePath[i]].length, GHT.nodeAddressLookup[nodePath[i + 1]].length)
+                    if (GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]] == undefined) {
+                        console.log("Path error:" + nodePath)
+                        break
+                    }
                     let strokePath = GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]][nodePath[i + 1]];
-                    let strokeIDs = GetStrokeIDsFromNodePath(strokePath);
-                    strokeIDs.forEach(s => {
-                        //d3.selectAll('.st-' + s + "[depth=\"" + depth + "\"]").style("stroke-opacity", 1)
-                        d3.selectAll('.st-' + s).style("stroke-opacity", 1);
-                        GHT.tcircles.push(applyDirectionalMovementToStroke(s, +(d3.select('.st-' + s).style("stroke-width").replace('px', '')) / 2))
-                    });
+                    if (strokePath != undefined) {
+                        let strokeIDs = GetStrokeIDsFromNodePath(strokePath);
+                        strokeIDs.forEach(s => {
+                            d3.selectAll('.st-' + s).style("stroke-opacity", 1);
+                            GHT.tcircles.push(applyDirectionalMovementToStroke(s, +(d3.select('.st-' + s).style("stroke-width").replace('px', '')) / 2));
+                        });
+                    } else {
+                        console.log("Path error:" + nodePath[i] + "," + nodePath[i + 1] + " from " + nodePath)
+                        break
+                    }
                 }
             });
         }
     }
-
 }
+
 
 function mousemove(d) {
     Tooltip.html(this.id.substr(4))
