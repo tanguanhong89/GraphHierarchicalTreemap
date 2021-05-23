@@ -1,7 +1,9 @@
 import { HierarchicalNode, RootNode, GraphHierarchicalTreemap as GHT, LinksWaitingList } from './dataStructures'
 import * as d3 from 'd3'
 import { CalculateConnectivity, DebugDrawConnectivity, DrawPath, GetStrokeIDsFromNodePath } from './connectivity';
-
+/*
+    For parent-child flow, only child to parent direction is possible.
+*/
 function drawGraphHierarchicalTreemap(nodes, links, rectColoring, lineColoring, drawDebugLines = false, preroutes) {
     if (!preroutes && nodes.n == 'root') {
         RootNode.name = nodes.n;
@@ -226,7 +228,9 @@ function mouseover(d) {
                             GHT.tcircles.push(applyDirectionalMovementToStroke(s, +(d3.select('.st-' + s).style("stroke-width").replace('px', '')) / 2));
                         });
                     } else {
-                        console.log("Path error:" + nodePath[i] + "," + nodePath[i + 1] + " from " + nodePath)
+                        let p1 = GHT.nodeAddressLookup[nodePath[i]]
+                        let p2 = GHT.nodeAddressLookup[nodePath[i + 1]]
+                        console.log("Path error:" + p1 + ":" + nodePath[i] + "     " + p2 + ":" + nodePath[i + 1])
                         break
                     }
                 }
