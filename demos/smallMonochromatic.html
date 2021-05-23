@@ -77,16 +77,21 @@
         function foo() {
             return allNames[Math.floor(Math.random() * allNames.length)];
         }
-        while (1) {
-            let a = foo();
-            let b = foo();
-            if (a != b) {
-                if (!(a in links)) links[a] = new Set();
-                links[a].add(b);
+        allNames.forEach((n) => {
+            if (Math.random() > 0.9) {
+                let pathCnt = Math.floor(Math.random() * 3);
+                let paths = [];
+                for (let i = 0; i < pathCnt; i++) {
+                    let path = [];
+                    let pathSize = Math.floor((Math.random() * allNames.length) / 4);
+                    while (path.length < pathSize) {
+                        path.push(foo());
+                    }
+                    paths.push(path);
+                }
+                links[n] = paths;
             }
-            c++;
-            if (c > count || breaker > 100) break;
-        }
+        });
         return links;
     }
 

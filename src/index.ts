@@ -23,7 +23,7 @@ function drawTreemap(d1, drawDebugLines, preroutes) {
     if (d1.children.length == 0)
         return true;
     let id = d1.n;
-    let oid = "#" + id;
+    let oid = "#ght-" + id;
     let o = $(oid)[0];
     if (o == undefined)
         return drawnAny;
@@ -56,11 +56,11 @@ function drawTreemap(d1, drawDebugLines, preroutes) {
     let childrenLayer = dataGrp.get(1);
 
     function h1(d, dep, p) {
-        if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) {} else {
+        if ((d.x1 - d.x0) < GHT.minPxSize || (d.y1 - d.y0) < GHT.minPxSize) { } else {
             drawnAny = true;
             if (GHT.nodeAddressLookup[d.data.n] == undefined) {
                 let depthClass = "depth" + dep;
-                let gclass = d3.select('.' + depthClass).size() > 0 ? d3.select('.' + depthClass) : d3.select("#root").append('g')
+                let gclass = d3.select('.' + depthClass).size() > 0 ? d3.select('.' + depthClass) : d3.select("#ght-root").append('g')
                     .attr("class", depthClass);
                 let g = gclass.append('g');
                 let pclass = "p-" + (p != undefined ? p : "");
@@ -70,13 +70,13 @@ function drawTreemap(d1, drawDebugLines, preroutes) {
                     .attr("class", pclass)
                     .attr("id", "g-" + d.data.n);
                 let rect = g.append("rect")
-                    .attr("id", d.data.n)
+                    .attr("id", "ght-" + d.data.n)
                     .style("width", (d.x1 - d.x0) + "px")
                     .style("height", (d.y1 - d.y0) + "px");
                 if (d.data.n != "root")
                     rect.on("mouseover", mouseover)
-                    .on("mousemove", mousemove)
-                    .on("mouseleave", mouseleave);
+                        .on("mousemove", mousemove)
+                        .on("mouseleave", mouseleave);
                 if (d.data.n != 'root') {
                     rect.style("fill", GHT.coloring.rect(preroutes.length > 1 ? preroutes[1] : d.data.n)(dep));
                     RootNode.addGrandchild(preroutes, (new HierarchicalNode(d.data.n, d.data.v)));
@@ -87,7 +87,7 @@ function drawTreemap(d1, drawDebugLines, preroutes) {
     parentLayer.forEach(d => h1(d, depth, preroutes.join('-')));
     preroutes = preroutes.concat([d1.n]);
     childrenLayer.forEach(d => h1(d, depth + 1, preroutes.join('-')));
-    let graph = CalculateConnectivity(d1.n, padding);
+    let graph = CalculateConnectivity(d1.n, padding,drawDebugLines);
     GHT.connectivityGraphs[d1.n] = graph;
     if (drawDebugLines)
         DebugDrawConnectivity(graph, padding);
@@ -200,25 +200,28 @@ function createTooltip() {
 
 function mouseover(d) {
     if (!GHT.mouseoverState) {
+        let thisID=this.id.substr(4);
         GHT.mouseoverState = true
         Tooltip.style("opacity", 1);
+        Tooltip.html(thisID)
         d3.selectAll('rect').style("opacity", 0.1);
         d3.selectAll('line').style("stroke-opacity", 0.1);
         d3.select(this).style("opacity", 1);
-        d3.selectAll("g[class^='p-" + GHT.nodeAddressLookup[this.id].concat(this.id).join('-') + "']").selectAll('rect').style("opacity", 1);
-        if (GHT.nodePathIndex[this.id] != undefined) {
-            let pathIndices = GHT.nodePathIndex[this.id];
+        
+        d3.selectAll("g[class^='p-" + GHT.nodeAddressLookup[thisID].concat(thisID).join('-') + "']").selectAll('rect').style("opacity", 1);
+        if (GHT.nodePathIndex[thisID] != undefined) {
+            let pathIndices = GHT.nodePathIndex[thisID];
             pathIndices.forEach(pathIndex => {
                 let nodePath = [pathIndex[0]].concat(GHT.links[pathIndex[0]][pathIndex[1]]);
                 for (let i = 0; i < nodePath.length - 1; i++) {
-                    d3.select('#' + nodePath[i]).style("opacity", 1), d3.select('#' + nodePath[i + 1]).style("opacity", 1);
+                    d3.select('#ght-' + nodePath[i]).style("opacity", 1), d3.select('#ght-' + nodePath[i + 1]).style("opacity", 1);
                     //let depth = Math.max(GHT.nodeAddressLookup[nodePath[i]].length, GHT.nodeAddressLookup[nodePath[i + 1]].length)
                     let strokePath = GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]][nodePath[i + 1]];
                     let strokeIDs = GetStrokeIDsFromNodePath(strokePath);
                     strokeIDs.forEach(s => {
                         //d3.selectAll('.st-' + s + "[depth=\"" + depth + "\"]").style("stroke-opacity", 1)
                         d3.selectAll('.st-' + s).style("stroke-opacity", 1);
-                        GHT.tcircles.push(applyDirectionalMovementToStroke(s))
+                        GHT.tcircles.push(applyDirectionalMovementToStroke(s, +(d3.select('.st-' + s).style("stroke-width").replace('px', '')) / 2))
                     });
                 }
             });
@@ -228,7 +231,7 @@ function mouseover(d) {
 }
 
 function mousemove(d) {
-    Tooltip.html(this.id)
+    Tooltip.html(this.id.substr(4))
         .style("left", (d.x + 20) + "px")
         .style("top", (d.y - 40) + "px");
 }
@@ -244,18 +247,18 @@ function mouseleave(d) {
 }
 
 
-function applyDirectionalMovementToStroke(s) {
+function applyDirectionalMovementToStroke(s, r) {
     let tinterval = 1000
     let startend = s.split('-').map(x => x.split('_').map(xx => +(xx)))
 
-    let h1 = function() {
+    let h1 = function () {
         var t = d3.transition()
             .duration(tinterval)
             .ease(d3.easeLinear);
         d3.select('svg').append('circle').attr('class', 'ght-tcircle')
             .attr('cx', startend[0][0])
             .attr('cy', startend[0][1])
-            .attr('r', 100)
+            .attr('r', r)
             .attr('fill', 'red')
             .transition(t)
             .attr('cx', startend[1][0])
