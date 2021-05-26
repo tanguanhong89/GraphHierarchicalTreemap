@@ -17,6 +17,19 @@ function drawGraphHierarchicalTreemap(nodes, links, rectColoring, lineColoring, 
     }
     GHT.nodes = nodes, GHT.links = links
     createHierarchicalTreemap(nodes, drawDebugLines, preroutes);
+    var element = document.querySelector('#svg');
+
+    var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type == "attributes") {
+                resetRelabelFocusedNodes()
+            }
+        });
+    });
+
+    observer.observe(element, {
+        attributes: true //configure it to listen to attribute changes
+    });
 }
 
 
@@ -213,31 +226,19 @@ function mouseover(d) {
         d3.selectAll("g[class^='p-" + GHT.nodeAddressLookup[thisID].concat(thisID).join('-') + "']").selectAll('rect').style("opacity", 1);
         if (GHT.nodePathIndex[thisID] != undefined) {
             let pathIndices = GHT.nodePathIndex[thisID];
+            GHT.tpath = [];
+            GHT.tnode = this.id.substr(4);
             pathIndices.forEach(pathIndex => {
                 let nodePath = [pathIndex[0]].concat(GHT.links[pathIndex[0]][pathIndex[1]]);
+                GHT.tpath.push(nodePath);
+
+                resetRelabelFocusedNodes();
                 for (let i = 0; i < nodePath.length; i++) {
-                    if (this.id.substr(4) != nodePath[i]) {
-                        let domPos = $('#ght-' + nodePath[i])[0].getBoundingClientRect()
-                        let tooltipX = createTooltip();
-                        tooltipX.html(nodePath[i]).style("opacity", 1)
-                            .attr("class", "tooltip ght-ttooltip");
-                        let left = domPos.x,
-                            top = domPos.y;
-                        if (domPos.left > 0) left = domPos.left;
-                        else if (domPos.right > 0) left = domPos.right;
-                        if (domPos.top > 0) top = domPos.top;
-                        else if (domPos.bottom > 0) top = domPos.bottom;
-
-                        tooltipX.style("left", (left + 20) + "px")
-                            .style("top", (top - 40) + "px");
-
-                    }
                     if (i < nodePath.length - 1) {
                         d3.select('#ght-' + nodePath[i]).style("opacity", 1), d3.select('#ght-' + nodePath[i + 1]).style("opacity", 1);
-
                         if (GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]] == undefined) {
-                            console.log("Path error:" + nodePath)
-                            break
+                            console.log("Path error:" + nodePath);
+                            break;
                         }
                         let strokePath = GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]][nodePath[i + 1]];
                         if (strokePath != undefined) {
@@ -247,13 +248,12 @@ function mouseover(d) {
                                 GHT.tcircles.push(applyDirectionalMovementToStroke(s, +(d3.select('.st-' + s).style("stroke-width").replace('px', '')) / 2));
                             });
                         } else {
-                            let p1 = GHT.nodeAddressLookup[nodePath[i]]
-                            let p2 = GHT.nodeAddressLookup[nodePath[i + 1]]
-                            console.log("Path error:" + p1 + ":" + nodePath[i] + "     " + p2 + ":" + nodePath[i + 1])
-                            break
+                            let p1 = GHT.nodeAddressLookup[nodePath[i]];
+                            let p2 = GHT.nodeAddressLookup[nodePath[i + 1]];
+                            console.log("Path error:" + p1 + ":" + nodePath[i] + "     " + p2 + ":" + nodePath[i + 1]);
+                            break;
                         }
                     }
-
                 }
             });
         }
@@ -299,4 +299,30 @@ function applyDirectionalMovementToStroke(s, r) {
     }
     h1()
     return setInterval(() => { h1() }, tinterval)
+}
+
+function resetRelabelFocusedNodes() {
+    d3.selectAll('.ght-ttooltip').remove();
+    GHT.tpath.forEach(path => {
+        for (let i = 0; i < path.length; i++) {
+            if (GHT.tnode != path[i]) {
+                let domPos = $('#ght-' + path[i])[0].getBoundingClientRect();
+                let tooltipX = createTooltip();
+                tooltipX.html(path[i]).style("opacity", 1)
+                    .attr("class", "tooltip ght-ttooltip");
+                let left = domPos.x,
+                    top = domPos.y;
+                if (domPos.left > 0)
+                    left = domPos.left;
+                else if (domPos.right > 0)
+                    left = domPos.right;
+                if (domPos.top > 0)
+                    top = domPos.top;
+                else if (domPos.bottom > 0)
+                    top = domPos.bottom;
+                tooltipX.style("left", (left + 20) + "px")
+                    .style("top", (top - 40) + "px");
+            }
+        }
+    })
 }

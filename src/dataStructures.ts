@@ -26,6 +26,8 @@ let GraphHierarchicalTreemap = {
 
     mouseoverState: false,
     tcircles:[],
+    tpath: [],
+    tnode: '',
 }
 
 export class Point {
