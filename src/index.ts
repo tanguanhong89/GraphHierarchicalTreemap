@@ -3,6 +3,7 @@ import * as d3 from 'd3'
 import { CalculateConnectivity, DebugDrawConnectivity, DrawPath, GetStrokeIDsFromNodePath } from './connectivity';
 /*
     For parent-child flow, only child to parent direction is possible.
+    No immediate self directed path. eg [1,2,2,3]. 2 directs to itself next. However, [1,2,3,2] is possible
 */
 function drawGraphHierarchicalTreemap(nodes, links, rectColoring, lineColoring, drawDebugLines = false, preroutes) {
     if (!preroutes && nodes.n == 'root') {
@@ -214,25 +215,45 @@ function mouseover(d) {
             let pathIndices = GHT.nodePathIndex[thisID];
             pathIndices.forEach(pathIndex => {
                 let nodePath = [pathIndex[0]].concat(GHT.links[pathIndex[0]][pathIndex[1]]);
-                for (let i = 0; i < nodePath.length - 1; i++) {
-                    d3.select('#ght-' + nodePath[i]).style("opacity", 1), d3.select('#ght-' + nodePath[i + 1]).style("opacity", 1);
-                    if (GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]] == undefined) {
-                        console.log("Path error:" + nodePath)
-                        break
+                for (let i = 0; i < nodePath.length; i++) {
+                    if (this.id.substr(4) != nodePath[i]) {
+                        let domPos = $('#ght-' + nodePath[i])[0].getBoundingClientRect()
+                        let tooltipX = createTooltip();
+                        tooltipX.html(nodePath[i]).style("opacity", 1)
+                            .attr("class", "tooltip ght-ttooltip");
+                        let left = domPos.x,
+                            top = domPos.y;
+                        if (domPos.left > 0) left = domPos.left;
+                        else if (domPos.right > 0) left = domPos.right;
+                        if (domPos.top > 0) top = domPos.top;
+                        else if (domPos.bottom > 0) top = domPos.bottom;
+
+                        tooltipX.style("left", (left + 20) + "px")
+                            .style("top", (top - 40) + "px");
+
                     }
-                    let strokePath = GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]][nodePath[i + 1]];
-                    if (strokePath != undefined) {
-                        let strokeIDs = GetStrokeIDsFromNodePath(strokePath);
-                        strokeIDs.forEach(s => {
-                            d3.selectAll('.st-' + s).style("stroke-opacity", 1);
-                            GHT.tcircles.push(applyDirectionalMovementToStroke(s, +(d3.select('.st-' + s).style("stroke-width").replace('px', '')) / 2));
-                        });
-                    } else {
-                        let p1 = GHT.nodeAddressLookup[nodePath[i]]
-                        let p2 = GHT.nodeAddressLookup[nodePath[i + 1]]
-                        console.log("Path error:" + p1 + ":" + nodePath[i] + "     " + p2 + ":" + nodePath[i + 1])
-                        break
+                    if (i < nodePath.length - 1) {
+                        d3.select('#ght-' + nodePath[i]).style("opacity", 1), d3.select('#ght-' + nodePath[i + 1]).style("opacity", 1);
+
+                        if (GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]] == undefined) {
+                            console.log("Path error:" + nodePath)
+                            break
+                        }
+                        let strokePath = GHT.drawnNodesBetween2ImmediateNodeIDs[nodePath[i]][nodePath[i + 1]];
+                        if (strokePath != undefined) {
+                            let strokeIDs = GetStrokeIDsFromNodePath(strokePath);
+                            strokeIDs.forEach(s => {
+                                d3.selectAll('.st-' + s).style("stroke-opacity", 1);
+                                GHT.tcircles.push(applyDirectionalMovementToStroke(s, +(d3.select('.st-' + s).style("stroke-width").replace('px', '')) / 2));
+                            });
+                        } else {
+                            let p1 = GHT.nodeAddressLookup[nodePath[i]]
+                            let p2 = GHT.nodeAddressLookup[nodePath[i + 1]]
+                            console.log("Path error:" + p1 + ":" + nodePath[i] + "     " + p2 + ":" + nodePath[i + 1])
+                            break
+                        }
                     }
+
                 }
             });
         }
@@ -247,10 +268,11 @@ function mousemove(d) {
 }
 
 function mouseleave(d) {
-    GHT.mouseoverState = false
+    GHT.mouseoverState = false;
     while (GHT.tcircles.length > 0)
-        clearInterval(GHT.tcircles.shift())
-    d3.selectAll('.ght-tcircle').remove()
+        clearInterval(GHT.tcircles.shift());
+    d3.selectAll('.ght-tcircle').remove();
+    d3.selectAll('.ght-ttooltip').remove();
     Tooltip.style("opacity", 0);
     d3.selectAll('rect').style("opacity", 1);
     d3.selectAll('line').style("stroke-opacity", 1);
@@ -258,7 +280,7 @@ function mouseleave(d) {
 
 
 function applyDirectionalMovementToStroke(s, r) {
-    let tinterval = 1000
+    let tinterval = 2000
     let startend = s.split('-').map(x => x.split('_').map(xx => +(xx)))
 
     let h1 = function () {

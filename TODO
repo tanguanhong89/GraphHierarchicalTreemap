@@ -1,3 +1,9 @@
+google map style panel
+    token filtering
+lock mouseover
+Minimap depth 3
+finetune tooltip domPos, too much positive
+
 Possible failing to find path if fully blocked
 
 Remove g- groups
